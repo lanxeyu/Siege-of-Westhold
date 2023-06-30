@@ -87,12 +87,12 @@ enemies = pygame.sprite.Group()
 player = Player()
 all_sprites.add(player)
 
-score = 1
+score = 0
 
 # Create initial enemy object and add it to sprite groups
-enemy = Enemy()
-all_sprites.add(enemy)
-enemies.add(enemy)
+# enemy = Enemy()
+# all_sprites.add(enemy)
+# enemies.add(enemy)
 
 # Game loop
 running = True
