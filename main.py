@@ -25,6 +25,7 @@ pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Survival Game by Lanxe Yu")
 clock = pygame.time.Clock()
+font = pygame.font.Font(None, 36)
 
 # Player class
 class Player(pygame.sprite.Sprite):
@@ -86,6 +87,8 @@ enemies = pygame.sprite.Group()
 player = Player()
 all_sprites.add(player)
 
+score = 1
+
 # Create initial enemy object and add it to sprite groups
 enemy = Enemy()
 all_sprites.add(enemy)
@@ -116,6 +119,9 @@ while running:
         enemies.add(new_enemy)
         spawn_timer = 0
 
+        score += 1
+
+
     # Check for collisions between player and enemies
     hits = pygame.sprite.spritecollide(player, enemies, True)
     if hits:
@@ -125,6 +131,12 @@ while running:
     # Render
     screen.fill(BLACK)
     all_sprites.draw(screen)
+    
+
+    # Display the score on the screen
+    score_text = font.render("Score: {}".format(score), True, WHITE)
+    screen.blit(score_text, (50, 50))
+    
     pygame.display.flip()
 
 # Quit the game
