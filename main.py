@@ -57,7 +57,7 @@ class Player(pygame.sprite.Sprite):
         if self.rect.bottom > HEIGHT:
             self.rect.bottom = HEIGHT
 
-# Enemy class
+# Enemy classes
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, player):
         pygame.sprite.Sprite.__init__(self)
@@ -116,7 +116,7 @@ class Charger(Enemy):
         self.speed = 7
         self.dash_distance = 500  # Distance from the player to pause and dash
         self.dash_timer = 0
-        self.pause_duration = 1500  # Pause duration in milliseconds
+        self.pause_duration = 2500  # Pause duration in milliseconds
         self.dash_speed = 50
 
     def update(self):
@@ -184,46 +184,50 @@ running = True
 spawn_timer = 0
 spawn_delay = 3000  # Time delay in milliseconds for spawning a new enemy
 enemy_count = 1  # Initial number of enemies
+projectile_timer = 0
 
 while running:
     # Keep the loop running at the right speed
     clock.tick(FPS)
-
+    
     # Process events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # Left mouse button
-                # Get the mouse position
-                mouse_pos = pygame.mouse.get_pos()
-
-                # Create a projectile
-                projectile = Projectile(player.rect.center, mouse_pos)
-                all_sprites.add(projectile)
-                projectiles.add(projectile)
-
     # Update
     all_sprites.update()
+
+    # Increase the projectile timer
+    projectile_timer += clock.get_time()
 
     # Spawn a new enemy if the timer exceeds the spawn delay
     spawn_timer += clock.get_time()
     if spawn_timer >= spawn_delay:
-        enemy_type = random.choice(['Rusher', 'Rusher', 'Rusher', 'Charger'])
-        if enemy_type == 'Rusher':
-            new_enemy = Rusher(player)
-        elif enemy_type == 'Charger':
-            new_enemy = Charger(player)
-        all_sprites.add(new_enemy)
-        enemies.add(new_enemy)
-        spawn_timer = 0
+        for _ in range(round(enemy_count)):
+            enemy_type = random.choice(['Rusher', 'Rusher', 'Rusher', 'Charger'])
 
-        # Increase the number of enemies over time
-        enemy_count += 0.5
+            if enemy_type == 'Rusher':
+                new_enemy = Rusher(player)
+            elif enemy_type == 'Charger':
+                new_enemy = Charger(player)
+            all_sprites.add(new_enemy)
+            enemies.add(new_enemy)
+            spawn_timer = 0
+
+            # Increase the number of enemies spawned over time
+            enemy_count += 0.1
 
         score += 1 # Increment score by 1 for each enemy spawned
 
+    # Check if the projectile timer exceeds the desired interval (0.5 seconds)
+    if projectile_timer >= 500:
+        # Spawn a new projectile
+        mouse_pos = pygame.mouse.get_pos()
+        projectile = Projectile(player.rect.center, mouse_pos)
+        all_sprites.add(projectile)
+        projectiles.add(projectile)
+        projectile_timer = 0
 
     # Check for collisions between player and enemies
     hits = pygame.sprite.spritecollide(player, enemies, True)
