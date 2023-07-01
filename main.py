@@ -18,7 +18,6 @@ PLAYER_SPEED = 5
 
 # Enemy constants
 ENEMY_SIZE = 30
-ENEMY_SPEED = 3
 
 # Initialize Pygame
 pygame.init()
@@ -33,7 +32,7 @@ class Player(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE))
-        self.image.fill(RED)
+        self.image.fill(WHITE)
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH / 2, HEIGHT / 2)
 
@@ -63,7 +62,6 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, player):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((ENEMY_SIZE, ENEMY_SIZE))
-        self.image.fill(WHITE)
         self.rect = self.image.get_rect()
 
         # Set the initial position of the enemy offscreen
@@ -81,7 +79,6 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
             self.rect.y = random.randint(HEIGHT, HEIGHT + ENEMY_SIZE)
 
-        self.speed = ENEMY_SPEED
         self.player = player
 
     def update(self):
@@ -105,6 +102,37 @@ class Enemy(pygame.sprite.Sprite):
         # Move the enemy towards the player
         self.rect.x += self.velocity_x
         self.rect.y += self.velocity_y
+
+class Rusher(Enemy):
+    def __init__(self, player):
+        super().__init__(player)
+        self.image.fill(RED)
+        self.speed = 3
+
+class Charger(Enemy):
+    def __init__(self, player):
+        super().__init__(player)
+        self.image.fill((0, 0, 255))
+        self.speed = 7
+        self.dash_distance = 500  # Distance from the player to pause and dash
+        self.dash_timer = 0
+        self.pause_duration = 1500  # Pause duration in milliseconds
+        self.dash_speed = 50
+
+    def update(self):
+        dx = self.player.rect.centerx - self.rect.centerx
+        dy = self.player.rect.centery - self.rect.centery
+        distance = sqrt(dx ** 2 + dy ** 2)
+
+        if distance <= self.dash_distance:
+            self.dash_timer += clock.get_time()
+            if self.dash_timer >= self.pause_duration:
+                direction_x = dx / distance
+                direction_y = dy / distance
+                self.rect.x += direction_x * self.dash_speed
+                self.rect.y += direction_y * self.dash_speed
+        else:
+            super().update()
 
 # Pojectile class
 class Projectile(pygame.sprite.Sprite):
@@ -182,10 +210,13 @@ while running:
     # Spawn a new enemy if the timer exceeds the spawn delay
     spawn_timer += clock.get_time()
     if spawn_timer >= spawn_delay:
-        for _ in range(round(enemy_count)):
-            new_enemy = Enemy(player)
-            all_sprites.add(new_enemy)
-            enemies.add(new_enemy)
+        enemy_type = random.choice(['Rusher', 'Rusher', 'Rusher', 'Charger'])
+        if enemy_type == 'Rusher':
+            new_enemy = Rusher(player)
+        elif enemy_type == 'Charger':
+            new_enemy = Charger(player)
+        all_sprites.add(new_enemy)
+        enemies.add(new_enemy)
         spawn_timer = 0
 
         # Increase the number of enemies over time
