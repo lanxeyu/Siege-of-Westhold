@@ -3,8 +3,8 @@ import random
 from math import sqrt
 
 # Game constants
-WIDTH = 1920
-HEIGHT = 1080
+WIDTH = 1280
+HEIGHT = 720
 FPS = 30
 
 # Colors
@@ -139,14 +139,16 @@ class Projectile(pygame.sprite.Sprite):
     def __init__(self, start_pos, target_pos):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((10, 10))
-        self.image.fill((255, 255, 0))  # Yellow color for the projectile
+        self.image.fill((255, 255, 0))
         self.rect = self.image.get_rect()
         self.rect.center = start_pos
         self.speed = 15
+        self.target_pos = target_pos
 
-        # Calculate the direction vector from start_pos to target_pos
-        dx = target_pos[0] - start_pos[0]
-        dy = target_pos[1] - start_pos[1]
+    def update(self):
+        # Calculate the direction vector from the current start position to the target position
+        dx = self.target_pos[0] - (self.rect.x + camera_x)
+        dy = self.target_pos[1] - (self.rect.y + camera_y)
         distance = sqrt(dx ** 2 + dy ** 2)
 
         # Normalize the direction vector
@@ -161,11 +163,21 @@ class Projectile(pygame.sprite.Sprite):
         self.velocity_x = direction_x * self.speed
         self.velocity_y = direction_y * self.speed
 
-    def update(self):
         # Move the projectile based on the velocity vector
         self.rect.x += self.velocity_x
         self.rect.y += self.velocity_y
 
+# Load the background image
+background_image = pygame.image.load("assets/graphics/background.png").convert()
+# Scale the background image
+background = pygame.transform.scale(background_image, (1920, 1080))
+# Calculate the position to center the background image
+background_x = (WIDTH - background.get_width()) // 2
+background_y = (HEIGHT - background.get_height()) // 2
+
+# Define the camera position
+camera_x = 0
+camera_y = 0
 
 # Create sprite groups
 all_sprites = pygame.sprite.Group()
@@ -240,9 +252,19 @@ while running:
         # Increment the score for each enemy destroyed
         score += len(enemy_list)
 
-    # Render
+    # Fill the screen with black
     screen.fill(BLACK)
-    all_sprites.draw(screen)
+
+    # Update the camera position to follow the player centered
+    camera_x = player.rect.centerx - WIDTH // 2
+    camera_y = player.rect.centery - HEIGHT // 2
+
+    # Render the background image centered on the screen
+    screen.blit(background, (-camera_x, -camera_y))
+
+    # Draw all sprites onto the screen with the camera offset
+    for sprite in all_sprites:
+        screen.blit(sprite.image, sprite.rect.move(-camera_x, -camera_y))
     
 
     # Display the score on the screen
