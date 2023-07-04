@@ -86,26 +86,7 @@ class Mob(Enemy):
         self.speed = 2
 
     def update(self):
-        # Calculate the direction towards the tower
-        dx = self.tower.rect.centerx - self.rect.centerx
-        dy = self.tower.rect.centery - self.rect.centery
-        distance = sqrt(dx ** 2 + dy ** 2)
-
-        # Normalize the direction vector
-        if distance != 0:
-            direction_x = dx / distance
-            direction_y = dy / distance
-        else:
-            direction_x = 0
-            direction_y = 0
-
-        # Set the velocity vector based on the direction and speed
-        self.velocity_x = direction_x * self.speed
-        self.velocity_y = direction_y * self.speed
-
-        # Move the enemy towards the tower
-        self.rect.x += self.velocity_x
-        self.rect.y += self.velocity_y
+        super().update()
 
 class Charger(Enemy):
     def __init__(self, tower):
