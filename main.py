@@ -3,18 +3,17 @@ import random
 from math import sqrt
 
 # Game constants
-WIDTH = 1280
-HEIGHT = 720
-FPS = 30
+WIDTH = 1600
+HEIGHT = 900
+FPS = 60
 
 # Colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
-# Player constants
-PLAYER_SIZE = 50
-PLAYER_SPEED = 5
+# Tower constants
+TOWER_SIZE = 50
 
 # Enemy constants
 ENEMY_SIZE = 30
@@ -23,49 +22,29 @@ ENEMY_SIZE = 30
 pygame.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Survival Game by Lanxe Yu")
+pygame.display.set_caption("The Mage Tower by Lanxe Yu")
 clock = pygame.time.Clock()
 font = pygame.font.Font(None, 36)
 
-# Player class
-class Player(pygame.sprite.Sprite):
+# Tower class
+class Tower(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE))
+        self.image = pygame.Surface((TOWER_SIZE, TOWER_SIZE))
         self.image.fill(WHITE)
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH / 2, HEIGHT / 2)
-
-    def update(self):
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.rect.x -= PLAYER_SPEED
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.rect.x += PLAYER_SPEED
-        if keys[pygame.K_UP]  or keys[pygame.K_w]:
-            self.rect.y -= PLAYER_SPEED
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.rect.y += PLAYER_SPEED
-
-        # Keep the player inside the screen
-        if self.rect.left < 0:
-            self.rect.left = 0
-        if self.rect.right > WIDTH:
-            self.rect.right = WIDTH
-        if self.rect.top < 0:
-            self.rect.top = 0
-        if self.rect.bottom > HEIGHT:
-            self.rect.bottom = HEIGHT
+        self.rect.centerx = WIDTH / 2
+        self.rect.bottom = HEIGHT
 
 # Enemy classes
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, player):
+    def __init__(self, tower):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((ENEMY_SIZE, ENEMY_SIZE))
         self.rect = self.image.get_rect()
 
         # Set the initial position of the enemy offscreen
-        spawn_side = random.choice(['left', 'right', 'top', 'bottom'])
+        spawn_side = random.choice(['left', 'right', 'top'])
         if spawn_side == 'left':
             self.rect.x = random.randint(-ENEMY_SIZE, -1)
             self.rect.y = random.randint(0, HEIGHT - ENEMY_SIZE)
@@ -75,16 +54,13 @@ class Enemy(pygame.sprite.Sprite):
         elif spawn_side == 'top':
             self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
             self.rect.y = random.randint(-ENEMY_SIZE, -1)
-        elif spawn_side == 'bottom':
-            self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
-            self.rect.y = random.randint(HEIGHT, HEIGHT + ENEMY_SIZE)
 
-        self.player = player
+        self.tower = tower
 
     def update(self):
-        # Calculate the direction towards the player
-        dx = self.player.rect.centerx - self.rect.centerx
-        dy = self.player.rect.centery - self.rect.centery
+        # Calculate the direction towards the tower
+        dx = self.tower.rect.centerx - self.rect.centerx
+        dy = self.tower.rect.centery - self.rect.centery
         distance = sqrt(dx ** 2 + dy ** 2)
 
         # Normalize the direction vector
@@ -99,56 +75,56 @@ class Enemy(pygame.sprite.Sprite):
         self.velocity_x = direction_x * self.speed
         self.velocity_y = direction_y * self.speed
 
-        # Move the enemy towards the player
+        # Move the enemy towards the tower
         self.rect.x += self.velocity_x
         self.rect.y += self.velocity_y
 
-class Rusher(Enemy):
-    def __init__(self, player):
-        super().__init__(player)
+class Mob(Enemy):
+    def __init__(self, tower):
+        super().__init__(tower)
         self.image.fill(RED)
-        self.speed = 3
+        self.speed = 1
+    
+    
 
 class Charger(Enemy):
-    def __init__(self, player):
-        super().__init__(player)
+    def __init__(self, tower):
+        super().__init__(tower)
         self.image.fill((0, 0, 255))
-        self.speed = 7
-        self.dash_distance = 500  # Distance from the player to pause and dash
+        self.speed = 2
+        self.dash_distance = 800  # Distance from the tower to pause and dash
         self.dash_timer = 0
         self.pause_duration = 2500  # Pause duration in milliseconds
-        self.dash_speed = 50
+        self.dash_speed = 4
 
     def update(self):
-        dx = self.player.rect.centerx - self.rect.centerx
-        dy = self.player.rect.centery - self.rect.centery
+        dx = self.tower.rect.centerx - self.rect.centerx
+        dy = self.tower.rect.centery - self.rect.centery
         distance = sqrt(dx ** 2 + dy ** 2)
 
-        if distance <= self.dash_distance:
-            self.dash_timer += clock.get_time()
-            if self.dash_timer >= self.pause_duration:
-                direction_x = dx / distance
-                direction_y = dy / distance
-                self.rect.x += direction_x * self.dash_speed
-                self.rect.y += direction_y * self.dash_speed
-        else:
-            super().update()
+        # if distance <= self.dash_distance:
+        #     self.dash_timer += clock.get_time()
+        #     if self.dash_timer >= self.pause_duration:
+        #         direction_x = dx / distance
+        #         direction_y = dy / distance
+        #         self.rect.x += direction_x * self.dash_speed
+        #         self.rect.y += direction_y * self.dash_speed
+        # else:
+        #     super().update()
 
 # Pojectile class
 class Projectile(pygame.sprite.Sprite):
     def __init__(self, start_pos, target_pos):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((10, 10))
+        self.image = pygame.Surface((20, 20))
         self.image.fill((255, 255, 0))
         self.rect = self.image.get_rect()
         self.rect.center = start_pos
-        self.speed = 15
-        self.target_pos = target_pos
+        self.speed = 30
 
-    def update(self):
-        # Calculate the direction vector from the current start position to the target position
-        dx = self.target_pos[0] - (self.rect.x + camera_x)
-        dy = self.target_pos[1] - (self.rect.y + camera_y)
+        # Calculate the direction vector from start_pos to target_pos
+        dx = target_pos[0] - start_pos[0]
+        dy = target_pos[1] - start_pos[1]
         distance = sqrt(dx ** 2 + dy ** 2)
 
         # Normalize the direction vector
@@ -163,6 +139,7 @@ class Projectile(pygame.sprite.Sprite):
         self.velocity_x = direction_x * self.speed
         self.velocity_y = direction_y * self.speed
 
+    def update(self):
         # Move the projectile based on the velocity vector
         self.rect.x += self.velocity_x
         self.rect.y += self.velocity_y
@@ -175,18 +152,14 @@ background = pygame.transform.scale(background_image, (1920, 1080))
 background_x = (WIDTH - background.get_width()) // 2
 background_y = (HEIGHT - background.get_height()) // 2
 
-# Define the camera position
-camera_x = 0
-camera_y = 0
-
 # Create sprite groups
 all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 projectiles = pygame.sprite.Group()
 
-# Create player object and add it to sprite groups
-player = Player()
-all_sprites.add(player)
+# Create tower object and add it to sprite groups
+tower = Tower()
+all_sprites.add(tower)
 
 # Initialize score
 score = 0
@@ -217,12 +190,12 @@ while running:
     spawn_timer += clock.get_time()
     if spawn_timer >= spawn_delay:
         for _ in range(round(enemy_count)):
-            enemy_type = random.choice(['Rusher', 'Rusher', 'Rusher', 'Charger'])
+            enemy_type = random.choice(['Mob', 'Mob', 'Mob', 'Charger'])
 
-            if enemy_type == 'Rusher':
-                new_enemy = Rusher(player)
+            if enemy_type == 'Mob':
+                new_enemy = Mob(tower)
             elif enemy_type == 'Charger':
-                new_enemy = Charger(player)
+                new_enemy = Charger(tower)
             all_sprites.add(new_enemy)
             enemies.add(new_enemy)
             spawn_timer = 0
@@ -236,13 +209,13 @@ while running:
     if projectile_timer >= 500:
         # Spawn a new projectile
         mouse_pos = pygame.mouse.get_pos()
-        projectile = Projectile(player.rect.center, mouse_pos)
+        projectile = Projectile(tower.rect.center, mouse_pos)
         all_sprites.add(projectile)
         projectiles.add(projectile)
         projectile_timer = 0
 
-    # Check for collisions between player and enemies
-    hits = pygame.sprite.spritecollide(player, enemies, True)
+    # Check for collisions between tower and enemies
+    hits = pygame.sprite.spritecollide(tower, enemies, True)
     if hits:
         # Game over logic
         running = False
@@ -252,21 +225,10 @@ while running:
         # Increment the score for each enemy destroyed
         score += len(enemy_list)
 
-    # Fill the screen with black
-    screen.fill(BLACK)
-
-    # Update the camera position to follow the player centered
-    camera_x = player.rect.centerx - WIDTH // 2
-    camera_y = player.rect.centery - HEIGHT // 2
-
-    # Render the background image centered on the screen
-    screen.blit(background, (-camera_x, -camera_y))
-
-    # Draw all sprites onto the screen with the camera offset
-    for sprite in all_sprites:
-        screen.blit(sprite.image, sprite.rect.move(-camera_x, -camera_y))
+    # Draw/render
+    screen.blit(background_image, (0, 0))
+    all_sprites.draw(screen)
     
-
     # Display the score on the screen
     score_text = font.render("Score: {}".format(score), True, WHITE)
     screen.blit(score_text, (50, 50))
