@@ -5,7 +5,7 @@ from math import sqrt
 # Game constants
 WIDTH = 1600
 HEIGHT = 900
-FPS = 60
+FPS = 30
 
 # Colors
 BLACK = (0, 0, 0)
@@ -34,7 +34,7 @@ class Tower(pygame.sprite.Sprite):
         self.image.fill(WHITE)
         self.rect = self.image.get_rect()
         self.rect.centerx = WIDTH / 2
-        self.rect.bottom = HEIGHT
+        self.rect.centery = 800
 
 # Enemy classes
 class Enemy(pygame.sprite.Sprite):
@@ -54,7 +54,7 @@ class Enemy(pygame.sprite.Sprite):
         elif spawn_side == 'top':
             self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
             self.rect.y = random.randint(-ENEMY_SIZE, -1)
-
+           
         self.tower = tower
 
     def update(self):
@@ -83,16 +83,36 @@ class Mob(Enemy):
     def __init__(self, tower):
         super().__init__(tower)
         self.image.fill(RED)
-        self.speed = 1
-    
-    
+        self.speed = 2
+
+    def update(self):
+        # Calculate the direction towards the tower
+        dx = self.tower.rect.centerx - self.rect.centerx
+        dy = self.tower.rect.centery - self.rect.centery
+        distance = sqrt(dx ** 2 + dy ** 2)
+
+        # Normalize the direction vector
+        if distance != 0:
+            direction_x = dx / distance
+            direction_y = dy / distance
+        else:
+            direction_x = 0
+            direction_y = 0
+
+        # Set the velocity vector based on the direction and speed
+        self.velocity_x = direction_x * self.speed
+        self.velocity_y = direction_y * self.speed
+
+        # Move the enemy towards the tower
+        self.rect.x += self.velocity_x
+        self.rect.y += self.velocity_y
 
 class Charger(Enemy):
     def __init__(self, tower):
         super().__init__(tower)
         self.image.fill((0, 0, 255))
         self.speed = 2
-        self.dash_distance = 800  # Distance from the tower to pause and dash
+        self.dash_distance = 750  # Distance from the tower to pause and dash
         self.dash_timer = 0
         self.pause_duration = 2500  # Pause duration in milliseconds
         self.dash_speed = 4
@@ -102,15 +122,15 @@ class Charger(Enemy):
         dy = self.tower.rect.centery - self.rect.centery
         distance = sqrt(dx ** 2 + dy ** 2)
 
-        # if distance <= self.dash_distance:
-        #     self.dash_timer += clock.get_time()
-        #     if self.dash_timer >= self.pause_duration:
-        #         direction_x = dx / distance
-        #         direction_y = dy / distance
-        #         self.rect.x += direction_x * self.dash_speed
-        #         self.rect.y += direction_y * self.dash_speed
-        # else:
-        #     super().update()
+        if distance <= self.dash_distance:
+            self.dash_timer += clock.get_time()
+            if self.dash_timer >= self.pause_duration:
+                direction_x = dx / distance
+                direction_y = dy / distance
+                self.rect.x += direction_x * self.dash_speed
+                self.rect.y += direction_y * self.dash_speed
+        else:
+            super().update()
 
 # Pojectile class
 class Projectile(pygame.sprite.Sprite):
