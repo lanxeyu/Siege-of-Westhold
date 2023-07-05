@@ -81,10 +81,40 @@ class Enemy(pygame.sprite.Sprite):
 class Mob(Enemy):
     def __init__(self, tower):
         super().__init__(tower)
-        self.image.fill(RED)
         self.speed = 2
+        self.frames = []  # List to store the animation frames
+        self.current_frame_index = 0  # Index of the current animation frame
+        self.load_frames()  # Load the animation frames from the sprite sheet
+        self.animation_delay = 200  # Delay between frame changes in milliseconds
+        self.last_frame_change = pygame.time.get_ticks()  # Time of the last frame change
+
+    def load_frames(self):
+        # Load the sprite sheet image containing the animation frames
+        sprite_sheet = pygame.image.load("assets/graphics/mob.png").convert_alpha()
+
+        # Split the sprite sheet into individual frames
+        frame_width = sprite_sheet.get_width() // 6  # Assuming 6 frames in the sprite sheet
+        frame_height = sprite_sheet.get_height()
+        for i in range(6):
+            frame = sprite_sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
+            self.frames.append(frame)
+
+        # Set the initial image as the first frame
+        self.image = self.frames[0]
 
     def update(self):
+        # Check if it's time to change to the next frame
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_change >= self.animation_delay:
+            # Update the animation frame index
+            self.current_frame_index = (self.current_frame_index + 1) % len(self.frames)
+
+            # Update the sprite's image with the current frame
+            self.image = self.frames[self.current_frame_index]
+
+            # Update the time of the last frame change
+            self.last_frame_change = current_time
+        
         super().update()
 
 class Charger(Enemy):
@@ -92,10 +122,10 @@ class Charger(Enemy):
         super().__init__(tower)
         self.image.fill((0, 0, 255))
         self.speed = 2
-        self.dash_distance = 750  # Distance from the tower to pause and dash
+        self.dash_distance = 400  # Distance from the tower to pause and dash
         self.dash_timer = 0
         self.pause_duration = 2500  # Pause duration in milliseconds
-        self.dash_speed = 4
+        self.dash_speed = 8
 
     def update(self):
         dx = self.tower.rect.centerx - self.rect.centerx
