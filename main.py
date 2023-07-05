@@ -3,8 +3,8 @@ import random
 from math import sqrt
 
 # Game constants
-WIDTH = 1600
-HEIGHT = 900
+WIDTH = 800
+HEIGHT = 800
 FPS = 30
 
 # Colors
@@ -13,7 +13,7 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
 # Tower constants
-TOWER_SIZE = 50
+TOWER_SIZE = 32
 
 # Enemy constants
 ENEMY_SIZE = 30
@@ -30,11 +30,10 @@ font = pygame.font.Font(None, 36)
 class Tower(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((TOWER_SIZE, TOWER_SIZE))
-        self.image.fill(WHITE)
+        self.image = pygame.image.load("assets/graphics/tower.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.centerx = WIDTH / 2
-        self.rect.centery = 800
+        self.rect.centery = HEIGHT / 2
 
 # Enemy classes
 class Enemy(pygame.sprite.Sprite):
@@ -145,13 +144,11 @@ class Projectile(pygame.sprite.Sprite):
         self.rect.x += self.velocity_x
         self.rect.y += self.velocity_y
 
-# Load the background image
+# Load the Background image
 background_image = pygame.image.load("assets/graphics/background.png").convert()
-# Scale the background image
-background = pygame.transform.scale(background_image, (1920, 1080))
 # Calculate the position to center the background image
-background_x = (WIDTH - background.get_width()) // 2
-background_y = (HEIGHT - background.get_height()) // 2
+background_x = (WIDTH - background_image.get_width()) // 2
+background_y = (HEIGHT - background_image.get_height()) // 2
 
 # Create sprite groups
 all_sprites = pygame.sprite.Group()
