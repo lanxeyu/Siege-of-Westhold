@@ -3,8 +3,8 @@ import random
 from math import sqrt
 
 # Game constants
-WIDTH = 800
-HEIGHT = 800
+WIDTH = 1280
+HEIGHT = 720
 FPS = 30
 
 # Colors
@@ -32,8 +32,8 @@ class Tower(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load("assets/graphics/tower.png").convert_alpha()
         self.rect = self.image.get_rect()
-        self.rect.centerx = WIDTH / 2
-        self.rect.centery = HEIGHT / 2
+        self.rect.centerx = 80
+        self.rect.centery = 368
 
 # Enemy classes
 class Enemy(pygame.sprite.Sprite):
@@ -43,20 +43,51 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
         # Set the initial position of the enemy offscreen
-        spawn_side = random.choice(['left', 'right', 'top'])
-        if spawn_side == 'left':
-            self.rect.x = random.randint(-ENEMY_SIZE, -1)
-            self.rect.y = random.randint(0, HEIGHT - ENEMY_SIZE)
-        elif spawn_side == 'right':
+        spawn_side = random.choice(['right', 'top', 'bottom'])
+        if spawn_side == 'right':
             self.rect.x = random.randint(WIDTH, WIDTH + ENEMY_SIZE)
             self.rect.y = random.randint(0, HEIGHT - ENEMY_SIZE)
         elif spawn_side == 'top':
             self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
             self.rect.y = random.randint(-ENEMY_SIZE, -1)
+        elif spawn_side == 'bottom':
+            self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
+            self.rect.y = random.randint(HEIGHT, HEIGHT + ENEMY_SIZE)
            
         self.tower = tower
 
+        # Initialize animation values
+        self.frames = []  # List to store the animation frames
+        self.current_frame_index = 0  # Index of the current animation frame
+        self.load_frames()  # Load the animation frames from the sprite sheet
+        self.animation_delay = 200  # Delay between frame changes in milliseconds
+        self.last_frame_change = pygame.time.get_ticks()  # Time of the last frame change
+
+    def load_frames(self, sprite_sheet, num_of_frames):
+        # Split the sprite sheet into individual frames
+        frame_width = sprite_sheet.get_width() // num_of_frames
+        frame_height = sprite_sheet.get_height()
+        for i in range(num_of_frames):
+            frame = sprite_sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
+            self.frames.append(frame)
+
+        # Set the initial image as the first frame
+        self.image = self.frames[0]
+
     def update(self):
+        # Animation: check if it's time to change to the next frame
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_change >= self.animation_delay:
+            # Update the animation frame index
+            self.current_frame_index = (self.current_frame_index + 1) % len(self.frames)
+
+            # Update the sprite's image with the current frame
+            self.image = self.frames[self.current_frame_index]
+
+            # Update the time of the last frame change
+            self.last_frame_change = current_time
+
+
         # Calculate the direction towards the tower
         dx = self.tower.rect.centerx - self.rect.centerx
         dy = self.tower.rect.centery - self.rect.centery
@@ -82,50 +113,25 @@ class Mob(Enemy):
     def __init__(self, tower):
         super().__init__(tower)
         self.speed = 2
-        self.frames = []  # List to store the animation frames
-        self.current_frame_index = 0  # Index of the current animation frame
-        self.load_frames()  # Load the animation frames from the sprite sheet
-        self.animation_delay = 200  # Delay between frame changes in milliseconds
-        self.last_frame_change = pygame.time.get_ticks()  # Time of the last frame change
 
     def load_frames(self):
-        # Load the sprite sheet image containing the animation frames
-        sprite_sheet = pygame.image.load("assets/graphics/mob.png").convert_alpha()
-
-        # Split the sprite sheet into individual frames
-        frame_width = sprite_sheet.get_width() // 6  # Assuming 6 frames in the sprite sheet
-        frame_height = sprite_sheet.get_height()
-        for i in range(6):
-            frame = sprite_sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
-            self.frames.append(frame)
-
-        # Set the initial image as the first frame
-        self.image = self.frames[0]
+        super().load_frames(mob_sheet,6)
 
     def update(self):
-        # Check if it's time to change to the next frame
-        current_time = pygame.time.get_ticks()
-        if current_time - self.last_frame_change >= self.animation_delay:
-            # Update the animation frame index
-            self.current_frame_index = (self.current_frame_index + 1) % len(self.frames)
-
-            # Update the sprite's image with the current frame
-            self.image = self.frames[self.current_frame_index]
-
-            # Update the time of the last frame change
-            self.last_frame_change = current_time
-        
         super().update()
 
 class Charger(Enemy):
     def __init__(self, tower):
         super().__init__(tower)
-        self.image.fill((0, 0, 255))
         self.speed = 2
         self.dash_distance = 400  # Distance from the tower to pause and dash
         self.dash_timer = 0
         self.pause_duration = 2500  # Pause duration in milliseconds
         self.dash_speed = 8
+
+    def load_frames(self):
+        super().load_frames(charger_sheet,5)
+
 
     def update(self):
         dx = self.tower.rect.centerx - self.rect.centerx
@@ -146,8 +152,7 @@ class Charger(Enemy):
 class Projectile(pygame.sprite.Sprite):
     def __init__(self, start_pos, target_pos):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((20, 20))
-        self.image.fill((255, 255, 0))
+        self.image = projectile_image
         self.rect = self.image.get_rect()
         self.rect.center = start_pos
         self.speed = 30
@@ -179,6 +184,11 @@ background_image = pygame.image.load("assets/graphics/background.png").convert()
 # Calculate the position to center the background image
 background_x = (WIDTH - background_image.get_width()) // 2
 background_y = (HEIGHT - background_image.get_height()) // 2
+
+# Load sprite sheets containing the animation frames
+projectile_image = pygame.image.load("assets/graphics/fireball.png").convert_alpha()
+mob_sheet = pygame.image.load("assets/graphics/mob.png").convert_alpha()
+charger_sheet = pygame.image.load("assets/graphics/charger.png").convert_alpha()
 
 # Create sprite groups
 all_sprites = pygame.sprite.Group()
