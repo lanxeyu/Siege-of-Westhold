@@ -26,6 +26,38 @@ pygame.display.set_caption("The Mage Tower by Lanxe Yu")
 clock = pygame.time.Clock()
 font = pygame.font.Font(None, 36)
 
+def animate(self, sprite_sheet, num_of_frames):
+    # Initialize animation values
+    self.frames = []  # List to store the animation frames
+    self.current_frame_index = 0  # Index of the current animation frame
+    self.animation_delay = 200  # Delay between frame changes in milliseconds
+    self.last_frame_change = pygame.time.get_ticks()  # Time of the last frame change
+
+    # Split the sprite sheet into individual frames
+    frame_width = sprite_sheet.get_width() // num_of_frames
+    frame_height = sprite_sheet.get_height()
+    for i in range(num_of_frames):
+        frame = sprite_sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
+        self.frames.append(frame)
+
+    # Set the initial image as the first frame
+    self.image = self.frames[0]
+
+    self.rect = self.image.get_rect()
+
+def select_spawn(self):
+    # Set the initial position of the enemy offscreen
+    spawn_side = random.choice(['right', 'top', 'bottom'])
+    if spawn_side == 'right':
+        self.rect.x = random.randint(WIDTH, WIDTH + ENEMY_SIZE)
+        self.rect.y = random.randint(0, HEIGHT - ENEMY_SIZE)
+    elif spawn_side == 'top':
+        self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
+        self.rect.y = random.randint(-ENEMY_SIZE, -1)
+    elif spawn_side == 'bottom':
+        self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
+        self.rect.y = random.randint(HEIGHT, HEIGHT + ENEMY_SIZE)
+
 # Tower class
 class Tower(pygame.sprite.Sprite):
     def __init__(self):
@@ -38,46 +70,21 @@ class Tower(pygame.sprite.Sprite):
         self.max_health = 100
         self.curr_health = 100
 
+class Mage(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        
+class FireMage(Mage):
+    def __init__(self):
+        self.attack_speed = 1
+
 # Enemy classes
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, tower):
         pygame.sprite.Sprite.__init__(self)
         self.tower = tower
-
-        # Initialize animation values
-        self.frames = []  # List to store the animation frames
-        self.current_frame_index = 0  # Index of the current animation frame
-        self.load_frames()  # Load the animation frames from the sprite sheet
-        self.animation_delay = 200  # Delay between frame changes in milliseconds
-        self.last_frame_change = pygame.time.get_ticks()  # Time of the last frame change
-        self.rect = self.image.get_rect()
-
-        # Set the initial position of the enemy offscreen
-        spawn_side = random.choice(['right', 'top', 'bottom'])
-        if spawn_side == 'right':
-            self.rect.x = random.randint(WIDTH, WIDTH + ENEMY_SIZE)
-            self.rect.y = random.randint(0, HEIGHT - ENEMY_SIZE)
-        elif spawn_side == 'top':
-            self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
-            self.rect.y = random.randint(-ENEMY_SIZE, -1)
-        elif spawn_side == 'bottom':
-            self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
-            self.rect.y = random.randint(HEIGHT, HEIGHT + ENEMY_SIZE)
-
-    def load_frames(self, sprite_sheet, num_of_frames):
-        # Split the sprite sheet into individual frames
-        frame_width = sprite_sheet.get_width() // num_of_frames
-        frame_height = sprite_sheet.get_height()
-        for i in range(num_of_frames):
-            frame = sprite_sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
-            self.frames.append(frame)
-
-        # Set the initial image as the first frame
-        self.image = self.frames[0]
-        
-
+    
     def update(self):
-        
         # Animation: check if it's time to change to the next frame
         current_time = pygame.time.get_ticks()
         if current_time - self.last_frame_change >= self.animation_delay:
@@ -118,9 +125,8 @@ class Mob(Enemy):
         self.max_health = 1
         self.curr_health = 1
         self.speed = 2
-
-    def load_frames(self):
-        super().load_frames(mob_sheet,6)
+        animate(self, mob_sheet, 6)
+        select_spawn(self)
 
     def update(self):
         super().update()
@@ -135,10 +141,8 @@ class Charger(Enemy):
         self.dash_timer = 0
         self.pause_duration = 2500  # Pause duration in milliseconds
         self.dash_speed = 8
-
-    def load_frames(self):
-        super().load_frames(charger_sheet,5)
-
+        animate(self, charger_sheet, 5)
+        select_spawn(self)
 
     def update(self):
         dx = self.tower.rect.centerx - self.rect.centerx
