@@ -5,7 +5,7 @@ from math import sqrt
 # Game constants
 WIDTH = 1280
 HEIGHT = 720
-FPS = 30
+FPS = 60
 
 # Colors
 BLACK = (0, 0, 0)
@@ -16,7 +16,7 @@ RED = (255, 0, 0)
 TOWER_SIZE = 32
 
 # Enemy constants
-ENEMY_SIZE = 30
+ENEMY_SIZE = 16
 
 # Initialize Pygame
 pygame.init()
@@ -35,11 +35,21 @@ class Tower(pygame.sprite.Sprite):
         self.rect.centerx = 80
         self.rect.centery = 368
 
+        self.max_health = 100
+        self.curr_health = 100
+
 # Enemy classes
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, tower):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((ENEMY_SIZE, ENEMY_SIZE))
+        self.tower = tower
+
+        # Initialize animation values
+        self.frames = []  # List to store the animation frames
+        self.current_frame_index = 0  # Index of the current animation frame
+        self.load_frames()  # Load the animation frames from the sprite sheet
+        self.animation_delay = 200  # Delay between frame changes in milliseconds
+        self.last_frame_change = pygame.time.get_ticks()  # Time of the last frame change
         self.rect = self.image.get_rect()
 
         # Set the initial position of the enemy offscreen
@@ -53,15 +63,6 @@ class Enemy(pygame.sprite.Sprite):
         elif spawn_side == 'bottom':
             self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
             self.rect.y = random.randint(HEIGHT, HEIGHT + ENEMY_SIZE)
-           
-        self.tower = tower
-
-        # Initialize animation values
-        self.frames = []  # List to store the animation frames
-        self.current_frame_index = 0  # Index of the current animation frame
-        self.load_frames()  # Load the animation frames from the sprite sheet
-        self.animation_delay = 200  # Delay between frame changes in milliseconds
-        self.last_frame_change = pygame.time.get_ticks()  # Time of the last frame change
 
     def load_frames(self, sprite_sheet, num_of_frames):
         # Split the sprite sheet into individual frames
@@ -73,8 +74,10 @@ class Enemy(pygame.sprite.Sprite):
 
         # Set the initial image as the first frame
         self.image = self.frames[0]
+        
 
     def update(self):
+        
         # Animation: check if it's time to change to the next frame
         current_time = pygame.time.get_ticks()
         if current_time - self.last_frame_change >= self.animation_delay:
@@ -112,6 +115,8 @@ class Enemy(pygame.sprite.Sprite):
 class Mob(Enemy):
     def __init__(self, tower):
         super().__init__(tower)
+        self.max_health = 1
+        self.curr_health = 1
         self.speed = 2
 
     def load_frames(self):
@@ -123,6 +128,8 @@ class Mob(Enemy):
 class Charger(Enemy):
     def __init__(self, tower):
         super().__init__(tower)
+        self.max_health = 2
+        self.curr_health = 2
         self.speed = 2
         self.dash_distance = 400  # Distance from the tower to pause and dash
         self.dash_timer = 0
@@ -148,14 +155,15 @@ class Charger(Enemy):
         else:
             super().update()
 
-# Pojectile class
-class Projectile(pygame.sprite.Sprite):
+# Fireball class
+class Fireball(pygame.sprite.Sprite):
     def __init__(self, start_pos, target_pos):
         pygame.sprite.Sprite.__init__(self)
-        self.image = projectile_image
+        self.image = fireball_image
         self.rect = self.image.get_rect()
         self.rect.center = start_pos
         self.speed = 30
+        self.damage = 1
 
         # Calculate the direction vector from start_pos to target_pos
         dx = target_pos[0] - start_pos[0]
@@ -175,25 +183,22 @@ class Projectile(pygame.sprite.Sprite):
         self.velocity_y = direction_y * self.speed
 
     def update(self):
-        # Move the projectile based on the velocity vector
+        # Move the fireball based on the velocity vector
         self.rect.x += self.velocity_x
         self.rect.y += self.velocity_y
 
 # Load the Background image
 background_image = pygame.image.load("assets/graphics/background.png").convert()
-# Calculate the position to center the background image
-background_x = (WIDTH - background_image.get_width()) // 2
-background_y = (HEIGHT - background_image.get_height()) // 2
 
 # Load sprite sheets containing the animation frames
-projectile_image = pygame.image.load("assets/graphics/fireball.png").convert_alpha()
+fireball_image = pygame.image.load("assets/graphics/fireball.png").convert_alpha()
 mob_sheet = pygame.image.load("assets/graphics/mob.png").convert_alpha()
 charger_sheet = pygame.image.load("assets/graphics/charger.png").convert_alpha()
 
 # Create sprite groups
 all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
-projectiles = pygame.sprite.Group()
+fireballs = pygame.sprite.Group()
 
 # Create tower object and add it to sprite groups
 tower = Tower()
@@ -207,7 +212,7 @@ running = True
 spawn_timer = 0
 spawn_delay = 3000  # Time delay in milliseconds for spawning a new enemy
 enemy_count = 1  # Initial number of enemies
-projectile_timer = 0
+fireball_timer = 0
 
 while running:
     # Keep the loop running at the right speed
@@ -221,8 +226,8 @@ while running:
     # Update
     all_sprites.update()
 
-    # Increase the projectile timer
-    projectile_timer += clock.get_time()
+    # Increase the fireball timer
+    fireball_timer += clock.get_time()
 
     # Spawn a new enemy if the timer exceeds the spawn delay
     spawn_timer += clock.get_time()
@@ -243,33 +248,38 @@ while running:
 
         score += 1 # Increment score by 1 for each enemy spawned
 
-    # Check if the projectile timer exceeds the desired interval (0.5 seconds)
-    if projectile_timer >= 500:
-        # Spawn a new projectile
+    # Check if the fireball timer exceeds the desired interval (0.5 seconds)
+    if fireball_timer >= 500:
+        # Spawn a new fireball
         mouse_pos = pygame.mouse.get_pos()
-        projectile = Projectile(tower.rect.center, mouse_pos)
-        all_sprites.add(projectile)
-        projectiles.add(projectile)
-        projectile_timer = 0
+        fireball = Fireball(tower.rect.center, mouse_pos)
+        all_sprites.add(fireball)
+        fireballs.add(fireball)
+        fireball_timer = 0
 
     # Check for collisions between tower and enemies
-    hits = pygame.sprite.spritecollide(tower, enemies, True)
-    if hits:
+    tower_hits = pygame.sprite.spritecollide(tower, enemies, True)
+    if tower_hits:
+        tower.curr_health -= 1
         # Game over logic
-        running = False
+        if tower.curr_health <= 0:
+            running = False
     
-    hits = pygame.sprite.groupcollide(projectiles, enemies, True, True)
-    for projectile, enemy_list in hits.items():
-        # Increment the score for each enemy destroyed
-        score += len(enemy_list)
+    # Check for fireball collision with enemies
+    fireball_hits = pygame.sprite.groupcollide(fireballs, enemies, True, False)
+    for fireball, enemy_list in fireball_hits.items():
+        for enemy in enemy_list:
+            enemy.curr_health -= fireball.damage
+            if enemy.curr_health <= 0:
+                enemy.kill()
 
     # Draw/render
     screen.blit(background_image, (0, 0))
     all_sprites.draw(screen)
     
-    # Display the score on the screen
-    score_text = font.render("Score: {}".format(score), True, WHITE)
-    screen.blit(score_text, (50, 50))
+    # Display the Tower health on the screen
+    health_text = font.render("Health: {}".format(tower.curr_health), True, WHITE)
+    screen.blit(health_text, (50, 50))
     
     pygame.display.flip()
 
