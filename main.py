@@ -1,6 +1,5 @@
 import pygame
 import random
-from math import sqrt
 
 # Game constants
 WIDTH = 1280
@@ -12,12 +11,6 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
-# Tower constants
-TOWER_SIZE = 32
-
-# Enemy constants
-ENEMY_SIZE = 16
-
 # Initialize Pygame
 pygame.init()
 pygame.mixer.init()
@@ -26,10 +19,10 @@ pygame.display.set_caption("Siege of Westhold")
 clock = pygame.time.Clock()
 font = pygame.font.Font(None, 36)
 
-def init_animate(self, sprite_sheet, num_of_frames):
-    # Initialize animation values
+# Initialize sprite animation values
+def init_animation(self, sprite_sheet, num_of_frames):
     self.frames = []  # List to store the animation frames
-    self.current_frame_index = 0  # Index of the current animation frame
+    self.curr_frame_index = 0  # Index of the current animation frame
     self.animation_delay = 200  # Delay between frame changes in milliseconds
     self.last_frame_change = pygame.time.get_ticks()  # Time of the last frame change
 
@@ -45,31 +38,50 @@ def init_animate(self, sprite_sheet, num_of_frames):
 
     self.rect = self.image.get_rect()
 
-def update_animate(self):
-            # Animation: check if it's time to change to the next frame
-        current_time = pygame.time.get_ticks()
-        if current_time - self.last_frame_change >= self.animation_delay:
-            # Update the animation frame index
-            self.current_frame_index = (self.current_frame_index + 1) % len(self.frames)
+def update_animation(self):
+    # Animation: check if it's time to change to the next frame
+    current_time = pygame.time.get_ticks()
+    if current_time - self.last_frame_change >= self.animation_delay:
+        # Update the animation frame index
+        self.curr_frame_index = (self.curr_frame_index + 1) % len(self.frames)
 
-            # Update the sprite's image with the current frame
-            self.image = self.frames[self.current_frame_index]
+        # Update the sprite's image with the current frame
+        self.image = self.frames[self.curr_frame_index]
 
-            # Update the time of the last frame change
-            self.last_frame_change = current_time
+        # Update the time of the last frame change
+        self.last_frame_change = current_time
+
+def init_position(self, start_pos, target_pos):
+    # Set the initial position using the start_pos passed in
+    self.position = pygame.Vector2(start_pos)
+    self.rect = self.image.get_rect(center=start_pos)
+
+    # Calculate the self.velocity vector from start_pos to target_pos
+    self.velocity = pygame.Vector2(target_pos) - self.position
+
+    # Normalize the direction vector
+    self.velocity.scale_to_length(self.speed)
+
+def update_position(self):
+    # Move the sprite based on the velocity vector
+    self.position += self.velocity
+
+    # Update the rect's position using float values
+    self.rect.centerx = self.position.x
+    self.rect.centery = self.position.y
 
 def select_spawn(self):
     # Set the initial position of the enemy offscreen
     spawn_side = random.choice(['right', 'top', 'bottom'])
     if spawn_side == 'right':
-        self.rect.x = random.randint(WIDTH, WIDTH + ENEMY_SIZE)
-        self.rect.y = random.randint(0, HEIGHT - ENEMY_SIZE)
+        self.rect.x = random.randint(WIDTH, WIDTH + self.rect.width)
+        self.rect.y = random.randint(0, HEIGHT - self.rect.height)
     elif spawn_side == 'top':
-        self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
-        self.rect.y = random.randint(-ENEMY_SIZE, -1)
+        self.rect.x = random.randint(WIDTH / 2, WIDTH - self.rect.width)
+        self.rect.y = random.randint(-self.rect.height, -1)
     elif spawn_side == 'bottom':
-        self.rect.x = random.randint(0, WIDTH - ENEMY_SIZE)
-        self.rect.y = random.randint(HEIGHT, HEIGHT + ENEMY_SIZE)
+        self.rect.x = random.randint(WIDTH / 2, WIDTH - self.rect.width)
+        self.rect.y = random.randint(HEIGHT, HEIGHT + self.rect.height)
 
 # Tower class
 class Tower(pygame.sprite.Sprite):
@@ -96,38 +108,21 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, tower):
         pygame.sprite.Sprite.__init__(self)
         self.tower = tower
-    
+ 
     def update(self):
-        update_animate(self)
-        # Calculate the direction towards the tower
-        dx = self.tower.rect.centerx - self.rect.centerx
-        dy = self.tower.rect.centery - self.rect.centery
-        distance = sqrt(dx ** 2 + dy ** 2)
-
-        # Normalize the direction vector
-        if distance != 0:
-            direction_x = dx / distance
-            direction_y = dy / distance
-        else:
-            direction_x = 0
-            direction_y = 0
-
-        # Set the velocity vector based on the direction and speed
-        self.velocity_x = direction_x * self.speed
-        self.velocity_y = direction_y * self.speed
-
-        # Move the enemy towards the tower
-        self.rect.x += self.velocity_x
-        self.rect.y += self.velocity_y
+        update_animation(self)
+        update_position(self)
 
 class Mob(Enemy):
     def __init__(self, tower):
         super().__init__(tower)
-        self.max_health = 1
-        self.curr_health = 1
-        self.speed = 2
-        init_animate(self, mob_sheet, 6)
+        self.max_health = 2
+        self.curr_health = 2
+        self.speed = 0.5
+        
+        init_animation(self, mob_sheet, 6)
         select_spawn(self)
+        init_position(self, self.rect.center, tower.rect.center)
 
     def update(self):
         super().update()
@@ -135,28 +130,39 @@ class Mob(Enemy):
 class Charger(Enemy):
     def __init__(self, tower):
         super().__init__(tower)
-        self.max_health = 2
-        self.curr_health = 2
-        self.speed = 2
+        self.max_health = 3
+        self.curr_health = 3
+        self.speed = 1
         self.dash_distance = 400  # Distance from the tower to pause and dash
         self.dash_timer = 0
         self.pause_duration = 2500  # Pause duration in milliseconds
         self.dash_speed = 8
-        init_animate(self, charger_sheet, 5)
+        
+        init_animation(self, charger_sheet, 5)
         select_spawn(self)
+        init_position(self, self.rect.center, tower.rect.center)
 
     def update(self):
-        dx = self.tower.rect.centerx - self.rect.centerx
-        dy = self.tower.rect.centery - self.rect.centery
-        distance = sqrt(dx ** 2 + dy ** 2)
 
-        if distance <= self.dash_distance:
+        update_animation(self)
+
+        # Once the Charger gets to a certain distance to the tower, pause movement to being charging
+        if (self.position - tower.rect.center).length() <= self.dash_distance:
             self.dash_timer += clock.get_time()
+
+            # After charge time elapses, move towards the tower at a higher speed
             if self.dash_timer >= self.pause_duration:
-                direction_x = dx / distance
-                direction_y = dy / distance
-                self.rect.x += direction_x * self.dash_speed
-                self.rect.y += direction_y * self.dash_speed
+                
+                # Normalize the direction vector using a higher speed value
+                self.velocity.scale_to_length(self.dash_speed)
+
+                # Move the sprite based on the velocity vector
+                self.position += self.velocity
+
+                # Update the rect's position using float values
+                self.rect.centerx = self.position.x
+                self.rect.centery = self.position.y
+
         else:
             super().update()
 
@@ -164,35 +170,16 @@ class Charger(Enemy):
 class Fireball(pygame.sprite.Sprite):
     def __init__(self, start_pos, target_pos):
         pygame.sprite.Sprite.__init__(self)
-        init_animate(self, fireball_sheet, 4)
-        self.position = pygame.Vector2(start_pos)
+        
         self.speed = 10.0
         self.damage = 1
 
-        # Calculate the direction vector from start_pos to target_pos
-        direction = pygame.Vector2(target_pos) - self.position
-        distance = direction.length()
-
-        # Normalize the direction vector
-        if distance != 0.0:
-            direction.scale_to_length(self.speed)
-
-        # Set the velocity vector based on the direction
-        self.velocity = direction
-
-        print(f"start_pos: {start_pos}")
-        print(f"direction: {direction}")
-        print(f"distance: {distance}")
-        print(f"velocity: {self.velocity}")
+        init_animation(self, fireball_sheet, 4)
+        init_position(self, start_pos, target_pos)
 
     def update(self):
-        update_animate(self)
-        # Move the fireball based on the velocity vector
-        self.position += self.velocity
-
-        # Update the rect's position (rounded to integers)
-        self.rect.x = round(self.position.x)
-        self.rect.y = round(self.position.y)
+        update_animation(self)
+        update_position(self)
 
 # Load the Background image
 background_image = pygame.image.load("assets/graphics/background.png").convert()
@@ -210,9 +197,6 @@ fireballs = pygame.sprite.Group()
 # Create tower object and add it to sprite groups
 tower = Tower()
 all_sprites.add(tower)
-
-# Initialize score
-score = 0
 
 # Game loop
 running = True
@@ -237,7 +221,7 @@ while running:
     spawn_timer += clock.get_time()
     if spawn_timer >= spawn_delay:
         for _ in range(round(enemy_count)):
-            enemy_type = random.choice(['Mob', 'Mob', 'Mob', 'Charger'])
+            enemy_type = random.choice(['Mob', 'Charger',])
 
             if enemy_type == 'Mob':
                 new_enemy = Mob(tower)
@@ -250,8 +234,6 @@ while running:
             # Increase the number of enemies spawned over time
             enemy_count += 0.1
 
-        score += 1 # Increment score by 1 for each enemy spawned
-    
     # Increase the fireball timer
     fireball_timer += clock.get_time()
 
@@ -259,7 +241,6 @@ while running:
     if fireball_timer >= 500:
         # Get the current mouse position
         mouse_pos = pygame.mouse.get_pos()
-        print(mouse_pos)
         # Spawn a new fireball
         fireball = Fireball(tower.rect.center, mouse_pos)
         all_sprites.add(fireball)
