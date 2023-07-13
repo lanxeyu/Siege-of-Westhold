@@ -56,7 +56,7 @@ def update_animation(self):
         # Update the time of the last frame change
         self.last_frame_change = current_time
 
-# Play the attack animation once
+# Mage attack animation
 def atk_animation(self, frames):
     # Animation: check if it's time to change to the next frame
     current_time = pygame.time.get_ticks()
@@ -74,6 +74,25 @@ def atk_animation(self, frames):
         else:
             self.is_attacking = False
             self.frames = frames
+
+
+# Hit marker animation when projectiles collide with enemies
+def hit_animation(self):
+    # Animation: check if it's time to change to the next frame
+    current_time = pygame.time.get_ticks()
+    if current_time - self.last_frame_change >= 100:
+        # Check if the current frame index is not the last frame index
+        if self.curr_frame_index < len(self.frames) - 1:
+            # Update the animation frame index
+            self.curr_frame_index += 1
+
+            # Update the sprite's image with the current frame
+            self.image = self.frames[self.curr_frame_index]
+
+            # Update the time of the last frame change
+            self.last_frame_change = current_time
+        else:
+            self.kill()
 
 # Initialize position of the sprite
 def init_position(self, start_pos, target_pos):
@@ -135,7 +154,7 @@ class MageFire(Mage):
     def __init__(self):
         super().__init__()
         
-        self.atk_speed = 500 # Fires every 1 seconds
+        self.atk_speed = 1000 # Fires every 1 seconds
         init_animation(self, magefire_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (70, 350)
@@ -145,6 +164,7 @@ class MageFire(Mage):
             atk_animation(self, magefire_frames)
         else:
             super().update()
+        # super().update()
 
 # ============== Auto-firing Projectile classes ==============
 class Projectile(pygame.sprite.Sprite):
@@ -166,6 +186,16 @@ class Fireball(pygame.sprite.Sprite):
     def update(self):
         update_animation(self)
         update_position(self)
+
+class FireballHitAnim(pygame.sprite.Sprite):
+        def __init__(self, fireball_collision_point):
+            pygame.sprite.Sprite.__init__(self)
+            init_animation(self, fireball_hit_frames)
+            self.rect = self.image.get_rect()
+            self.rect.center = fireball_collision_point
+        
+        def update(self):
+            hit_animation(self)
 
 # ============== Enemy classes ==============
 class Enemy(pygame.sprite.Sprite):
@@ -243,6 +273,8 @@ magefire_atk_sheet = pygame.image.load("assets/graphics/magefire_atk.png").conve
 magefire_atk_frames = load_frames(magefire_atk_sheet, 3)
 fireball_sheet = pygame.image.load("assets/graphics/fireball.png").convert_alpha()
 fireball_frames = load_frames(fireball_sheet, 4)
+fireball_hit_sheet = pygame.image.load("assets/graphics/fireball_hit.png").convert_alpha()
+fireball_hit_frames = load_frames(fireball_hit_sheet, 4)
 mob_sheet = pygame.image.load("assets/graphics/mob.png").convert_alpha()
 mob_frames = load_frames(mob_sheet, 6)
 charger_sheet = pygame.image.load("assets/graphics/charger.png").convert_alpha()
@@ -330,6 +362,9 @@ while running:
     fireball_hits = pygame.sprite.groupcollide(fireballs, enemies, True, False)
     for fireball, enemy_list in fireball_hits.items():
         for enemy in enemy_list:
+
+            fireball_hit_anim = FireballHitAnim(fireball.rect.center)
+            all_sprites.add(fireball_hit_anim)
             enemy.curr_health -= fireball.damage
             if enemy.curr_health <= 0:
                 enemy.kill()
