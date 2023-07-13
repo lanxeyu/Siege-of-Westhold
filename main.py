@@ -11,7 +11,7 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
-# Initialize Pygame
+# ============== Initialize Pygame ==============
 pygame.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -19,25 +19,30 @@ pygame.display.set_caption("Siege of Westhold")
 clock = pygame.time.Clock()
 font = pygame.font.Font(None, 36)
 
-# Initialize sprite animation values
-def init_animation(self, sprite_sheet, num_of_frames):
-    self.frames = []  # List to store the animation frames
-    self.curr_frame_index = 0  # Index of the current animation frame
-    self.animation_delay = 200  # Delay between frame changes in milliseconds
-    self.last_frame_change = pygame.time.get_ticks()  # Time of the last frame change
-
+# ============== Sprite animation and position functions ==============
+# Split sprite sheet into frames and return an array containing the frames
+def load_frames(sprite_sheet, num_of_frames):
+    frames = []  # List to store the animation frames
     # Split the sprite sheet into individual frames
     frame_width = sprite_sheet.get_width() // num_of_frames
     frame_height = sprite_sheet.get_height()
     for i in range(num_of_frames):
         frame = sprite_sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
-        self.frames.append(frame)
+        frames.append(frame)
+    
+    return frames
+
+# Initialize sprite animation values
+def init_animation(self, frames):
+    self.frames = frames
+    self.curr_frame_index = 0  # Index of the current animation frame
+    self.animation_delay = 200  # Delay between frame changes in milliseconds
+    self.last_frame_change = pygame.time.get_ticks()  # Time of the last frame change
 
     # Set the initial image as the first frame
     self.image = self.frames[0]
 
-    self.rect = self.image.get_rect()
-
+# Update animation according to the frames in the sprite sheet
 def update_animation(self):
     # Animation: check if it's time to change to the next frame
     current_time = pygame.time.get_ticks()
@@ -51,6 +56,26 @@ def update_animation(self):
         # Update the time of the last frame change
         self.last_frame_change = current_time
 
+# Play the attack animation once
+def atk_animation(self, frames):
+    # Animation: check if it's time to change to the next frame
+    current_time = pygame.time.get_ticks()
+    if current_time - self.last_frame_change >= 50:
+        # Check if the current frame index is not the last frame index
+        if self.curr_frame_index < len(self.frames) - 1:
+            # Update the animation frame index
+            self.curr_frame_index += 1
+
+            # Update the sprite's image with the current frame
+            self.image = self.frames[self.curr_frame_index]
+
+            # Update the time of the last frame change
+            self.last_frame_change = current_time
+        else:
+            self.is_attacking = False
+            self.frames = frames
+
+# Initialize position of the sprite
 def init_position(self, start_pos, target_pos):
     # Set the initial position using the start_pos passed in
     self.position = pygame.Vector2(start_pos)
@@ -62,6 +87,7 @@ def init_position(self, start_pos, target_pos):
     # Normalize the direction vector
     self.velocity.scale_to_length(self.speed)
 
+# Update position of the sprite
 def update_position(self):
     # Move the sprite based on the velocity vector
     self.position += self.velocity
@@ -70,6 +96,7 @@ def update_position(self):
     self.rect.centerx = self.position.x
     self.rect.centery = self.position.y
 
+# Select the spawn point of the enemy sprite
 def select_spawn(self):
     # Set the initial position of the enemy offscreen
     spawn_side = random.choice(['right', 'top', 'bottom'])
@@ -83,7 +110,7 @@ def select_spawn(self):
         self.rect.x = random.randint(WIDTH / 2, WIDTH - self.rect.width)
         self.rect.y = random.randint(HEIGHT, HEIGHT + self.rect.height)
 
-# Tower class
+# ============== Tower class ==============
 class Tower(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
@@ -95,32 +122,70 @@ class Tower(pygame.sprite.Sprite):
         self.max_health = 100
         self.curr_health = 100
 
+# ============== Mage classes ==============
 class Mage(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        
-class FireMage(Mage):
-    def __init__(self):
-        self.attack_speed = 1
+        self.is_attacking = False
 
-# Enemy classes
-class Enemy(pygame.sprite.Sprite):
-    def __init__(self, tower):
+    def update(self):
+        update_animation(self)
+        
+class MageFire(Mage):
+    def __init__(self):
+        super().__init__()
+        
+        self.atk_speed = 500 # Fires every 1 seconds
+        init_animation(self, magefire_frames)
+        self.rect = self.image.get_rect()
+        self.rect.center = (70, 350)
+
+    def update(self):
+        if self.is_attacking == True:
+            atk_animation(self, magefire_frames)
+        else:
+            super().update()
+
+# ============== Auto-firing Projectile classes ==============
+class Projectile(pygame.sprite.Sprite):
+    pass
+
+# ============== Player-controlled Fireball class ==============
+class Fireball(pygame.sprite.Sprite):
+    def __init__(self, target_pos):
         pygame.sprite.Sprite.__init__(self)
-        self.tower = tower
+        
+        self.speed = 10.0
+        self.damage = 1
+
+        init_animation(self, fireball_frames)
+        self.rect = self.image.get_rect()
+
+        init_position(self, (71, 334), target_pos)
+
+    def update(self):
+        update_animation(self)
+        update_position(self)
+
+# ============== Enemy classes ==============
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
  
     def update(self):
         update_animation(self)
         update_position(self)
 
 class Mob(Enemy):
-    def __init__(self, tower):
-        super().__init__(tower)
+    def __init__(self):
+        super().__init__()
         self.max_health = 2
         self.curr_health = 2
         self.speed = 0.5
         
-        init_animation(self, mob_sheet, 6)
+        init_animation(self, mob_frames)
+        self.rect = self.image.get_rect()
+
         select_spawn(self)
         init_position(self, self.rect.center, tower.rect.center)
 
@@ -128,8 +193,8 @@ class Mob(Enemy):
         super().update()
 
 class Charger(Enemy):
-    def __init__(self, tower):
-        super().__init__(tower)
+    def __init__(self):
+        super().__init__()
         self.max_health = 3
         self.curr_health = 3
         self.speed = 1
@@ -138,7 +203,9 @@ class Charger(Enemy):
         self.pause_duration = 2500  # Pause duration in milliseconds
         self.dash_speed = 8
         
-        init_animation(self, charger_sheet, 5)
+        init_animation(self, charger_frames)
+        self.rect = self.image.get_rect()
+
         select_spawn(self)
         init_position(self, self.rect.center, tower.rect.center)
 
@@ -166,37 +233,36 @@ class Charger(Enemy):
         else:
             super().update()
 
-# Fireball class
-class Fireball(pygame.sprite.Sprite):
-    def __init__(self, start_pos, target_pos):
-        pygame.sprite.Sprite.__init__(self)
-        
-        self.speed = 10.0
-        self.damage = 1
-
-        init_animation(self, fireball_sheet, 4)
-        init_position(self, start_pos, target_pos)
-
-    def update(self):
-        update_animation(self)
-        update_position(self)
-
 # Load the Background image
 background_image = pygame.image.load("assets/graphics/background.png").convert()
 
 # Load sprite sheets containing the animation frames
+magefire_sheet = pygame.image.load("assets/graphics/magefire.png").convert_alpha()
+magefire_frames = load_frames(magefire_sheet, 4)
+magefire_atk_sheet = pygame.image.load("assets/graphics/magefire_atk.png").convert_alpha()
+magefire_atk_frames = load_frames(magefire_atk_sheet, 3)
 fireball_sheet = pygame.image.load("assets/graphics/fireball.png").convert_alpha()
+fireball_frames = load_frames(fireball_sheet, 4)
 mob_sheet = pygame.image.load("assets/graphics/mob.png").convert_alpha()
+mob_frames = load_frames(mob_sheet, 6)
 charger_sheet = pygame.image.load("assets/graphics/charger.png").convert_alpha()
+charger_frames = load_frames(charger_sheet, 5)
+
 
 # Create sprite groups
 all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
+mages = pygame.sprite.Group()
 fireballs = pygame.sprite.Group()
 
 # Create tower object and add it to sprite groups
 tower = Tower()
 all_sprites.add(tower)
+
+# Create tower object and add it to sprite groups
+magefire = MageFire()
+mages.add(magefire)
+all_sprites.add(magefire)
 
 # Game loop
 running = True
@@ -209,6 +275,8 @@ while running:
     # Keep the loop running at the right speed
     clock.tick(FPS)
     
+    # print(magefire.is_attacking)
+
     # Process events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -224,9 +292,9 @@ while running:
             enemy_type = random.choice(['Mob', 'Charger',])
 
             if enemy_type == 'Mob':
-                new_enemy = Mob(tower)
+                new_enemy = Mob()
             elif enemy_type == 'Charger':
-                new_enemy = Charger(tower)
+                new_enemy = Charger()
             all_sprites.add(new_enemy)
             enemies.add(new_enemy)
             spawn_timer = 0
@@ -236,13 +304,16 @@ while running:
 
     # Increase the fireball timer
     fireball_timer += clock.get_time()
-
-    # Check if the fireball timer exceeds the desired interval (0.5 seconds)
-    if fireball_timer >= 500:
+    # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
+    if fireball_timer >= magefire.atk_speed:
         # Get the current mouse position
+        magefire.frames = magefire_atk_frames
+        magefire.is_attacking = True
+        
         mouse_pos = pygame.mouse.get_pos()
+        
         # Spawn a new fireball
-        fireball = Fireball(tower.rect.center, mouse_pos)
+        fireball = Fireball(mouse_pos)
         all_sprites.add(fireball)
         fireballs.add(fireball)
         fireball_timer = 0
