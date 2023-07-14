@@ -56,26 +56,6 @@ def update_animation(self):
         # Update the time of the last frame change
         self.last_frame_change = current_time
 
-# Mage attack animation
-def atk_animation(self, frames):
-    # Animation: check if it's time to change to the next frame
-    current_time = pygame.time.get_ticks()
-    if current_time - self.last_frame_change >= 50:
-        # Check if the current frame index is not the last frame index
-        if self.curr_frame_index < len(self.frames) - 1:
-            # Update the animation frame index
-            self.curr_frame_index += 1
-
-            # Update the sprite's image with the current frame
-            self.image = self.frames[self.curr_frame_index]
-
-            # Update the time of the last frame change
-            self.last_frame_change = current_time
-        else:
-            self.is_attacking = False
-            self.frames = frames
-
-
 # Hit marker animation when projectiles collide with enemies
 def hit_animation(self):
     # Animation: check if it's time to change to the next frame
@@ -148,45 +128,103 @@ class Mage(pygame.sprite.Sprite):
         self.is_attacking = False
 
     def update(self):
-        update_animation(self)
+        if self.is_attacking:
+            # Check if the current frame index is not the last frame index
+            if self.curr_frame_index < len(self.frames) - 1:
+                update_animation(self)
+            else:
+                self.is_attacking = False
+                self.image = self.frames[0]  # Reset to the idle frame
+                self.curr_frame_index = 0
+                self.frames = magefire_frames
+        else:
+            update_animation(self)
         
 class MageFire(Mage):
     def __init__(self):
         super().__init__()
-        
-        self.atk_speed = 1000 # Fires every 1 seconds
+        self.atk_speed = 1000
         init_animation(self, magefire_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (70, 350)
 
     def update(self):
-        if self.is_attacking == True:
-            atk_animation(self, magefire_frames)
-        else:
-            super().update()
-        # super().update()
+        super().update()
+
+class MageLight(Mage):
+    def __init__(self):
+        super().__init__()
+        self.atk_speed = 1500
+        init_animation(self, magelight_frames)
+        self.rect = self.image.get_rect()
+        self.rect.center = (86, 350)
+
+    def update(self):
+        super().update()
 
 # ============== Auto-firing Projectile classes ==============
 class Projectile(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((10, 10))  # Adjust the size of the projectile
+        self.image.fill((255, 0, 0))  # Set the color of the projectile
+
+        self.speed = 5  # Adjust the speed of the projectile
+        self.rect = self.image.get_rect()
+
+
+        self.start_pos = (71, 334)
+        # self.target_pos = self.find_nearest_enemy(self.start_pos, enemies)
+        self.target_pos = pygame.mouse.get_pos() ######################## testing 
+        init_position(self, self.start_pos, self.target_pos)
+
+        self.direction = self.calculate_direction()
+
+    def find_nearest_enemy(self, start_pos, enemies):
+        min_distance = float('inf')
+        nearest_enemy = None
+
+        for enemy in enemies:
+            distance = (enemy.rect.center - start_pos).length()
+            if distance < min_distance:
+                min_distance = distance
+                nearest_enemy = enemy
+
+        return nearest_enemy
+
+    def calculate_direction(self):
+        direction = pygame.Vector2(self.target_pos) - pygame.Vector2(self.rect.center)
+        return direction.normalize()
+    
+    def update(self):
+        update_position(self)
+
+class Laser(Projectile):
     pass
+
 
 # ============== Player-controlled Fireball class ==============
 class Fireball(pygame.sprite.Sprite):
-    def __init__(self, target_pos):
+    def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        
         self.speed = 10.0
         self.damage = 1
 
         init_animation(self, fireball_frames)
         self.rect = self.image.get_rect()
-
-        init_position(self, (71, 334), target_pos)
+        
+        self.start_pos = (71, 334)
+        self.target_pos = pygame.mouse.get_pos()
+        init_position(self, self.start_pos, self.target_pos)
 
     def update(self):
         update_animation(self)
         update_position(self)
 
+        # Check if the fireball is offscreen, if yes, kill it
+        if self.rect.right < 0 or self.rect.left > WIDTH or self.rect.bottom < 0 or self.rect.top > HEIGHT:
+            self.kill()
+            
 class FireballHitAnim(pygame.sprite.Sprite):
         def __init__(self, fireball_collision_point):
             pygame.sprite.Sprite.__init__(self)
@@ -263,45 +301,53 @@ class Charger(Enemy):
         else:
             super().update()
 
-# Load the Background image
+# ============== Load graphics assets ==============
 background_image = pygame.image.load("assets/graphics/background.png").convert()
-
-# Load sprite sheets containing the animation frames
 magefire_sheet = pygame.image.load("assets/graphics/magefire.png").convert_alpha()
 magefire_frames = load_frames(magefire_sheet, 4)
 magefire_atk_sheet = pygame.image.load("assets/graphics/magefire_atk.png").convert_alpha()
 magefire_atk_frames = load_frames(magefire_atk_sheet, 3)
+
+magelight_sheet = pygame.image.load("assets/graphics/magelight.png").convert_alpha()
+magelight_frames = load_frames(magelight_sheet, 4)
+magelight_atk_sheet = pygame.image.load("assets/graphics/magefire_atk.png").convert_alpha()
+magelight_atk_frames = load_frames(magelight_atk_sheet, 3)
+
 fireball_sheet = pygame.image.load("assets/graphics/fireball.png").convert_alpha()
 fireball_frames = load_frames(fireball_sheet, 4)
 fireball_hit_sheet = pygame.image.load("assets/graphics/fireball_hit.png").convert_alpha()
 fireball_hit_frames = load_frames(fireball_hit_sheet, 4)
+
 mob_sheet = pygame.image.load("assets/graphics/mob.png").convert_alpha()
 mob_frames = load_frames(mob_sheet, 6)
+
 charger_sheet = pygame.image.load("assets/graphics/charger.png").convert_alpha()
 charger_frames = load_frames(charger_sheet, 5)
 
-
-# Create sprite groups
+# ============== Create sprite groups ==============
 all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 mages = pygame.sprite.Group()
 fireballs = pygame.sprite.Group()
+projectiles = pygame.sprite.Group()
 
-# Create tower object and add it to sprite groups
+# ============== Create tower object and add it to sprite groups ==============
 tower = Tower()
 all_sprites.add(tower)
 
-# Create tower object and add it to sprite groups
+# ============== Create mage objects and add them to sprite groups ==============
 magefire = MageFire()
-mages.add(magefire)
-all_sprites.add(magefire)
+magelight = MageLight()
+mages.add(magefire, magelight)
+all_sprites.add(magefire, magelight)
 
-# Game loop
+# ============== Game loop ==============
 running = True
 spawn_timer = 0
 spawn_delay = 3000  # Time delay in milliseconds for spawning a new enemy
 enemy_count = 1  # Initial number of enemies
 fireball_timer = 0
+laser_timer = 0
 
 while running:
     # Keep the loop running at the right speed
@@ -341,14 +387,40 @@ while running:
         # Get the current mouse position
         magefire.frames = magefire_atk_frames
         magefire.is_attacking = True
-        
-        mouse_pos = pygame.mouse.get_pos()
-        
+                
         # Spawn a new fireball
-        fireball = Fireball(mouse_pos)
+        fireball = Fireball()
         all_sprites.add(fireball)
         fireballs.add(fireball)
         fireball_timer = 0
+
+    # Increase the laser timer
+    laser_timer += clock.get_time()
+    # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
+    if laser_timer >= magelight.atk_speed:
+        # Get the current mouse position
+        magelight.frames = magelight_atk_frames
+        magelight.is_attacking = True
+        
+        # Spawn a new laser
+        laser = Projectile()
+        all_sprites.add(laser)
+        projectiles.add(laser)
+        laser_timer = 0
+
+    # Check for fireball collision with enemies
+    fireball_hits = pygame.sprite.groupcollide(fireballs, enemies, True, False)
+    for fireball, enemy_list in fireball_hits.items():
+        for enemy in enemy_list:
+            
+            # Create fireball hit marker at the last position of the fireball
+            
+            fireball_hit_anim = FireballHitAnim(fireball.rect.center)
+
+            all_sprites.add(fireball_hit_anim)
+            enemy.curr_health -= fireball.damage
+            if enemy.curr_health <= 0:
+                enemy.kill()
 
     # Check for collisions between tower and enemies
     tower_hits = pygame.sprite.spritecollide(tower, enemies, True)
@@ -358,16 +430,7 @@ while running:
         if tower.curr_health <= 0:
             running = False
     
-    # Check for fireball collision with enemies
-    fireball_hits = pygame.sprite.groupcollide(fireballs, enemies, True, False)
-    for fireball, enemy_list in fireball_hits.items():
-        for enemy in enemy_list:
 
-            fireball_hit_anim = FireballHitAnim(fireball.rect.center)
-            all_sprites.add(fireball_hit_anim)
-            enemy.curr_health -= fireball.damage
-            if enemy.curr_health <= 0:
-                enemy.kill()
 
     # Draw/render
     screen.blit(background_image, (0, 0))
