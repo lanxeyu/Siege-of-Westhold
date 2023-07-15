@@ -109,6 +109,7 @@ def select_spawn(self):
         self.rect.x = random.randint(WIDTH / 2, WIDTH - self.rect.width)
         self.rect.y = random.randint(HEIGHT, HEIGHT + self.rect.height)
 
+
 # ============== Tower class ==============
 class Tower(pygame.sprite.Sprite):
     def __init__(self):
@@ -256,6 +257,10 @@ class FireballHitAnim(pygame.sprite.Sprite):
             init_animation(self, fireball_hit_frames)
             self.rect = self.image.get_rect()
             self.rect.center = fireball_collision_point
+
+            # Add to hitmarkers and all_sprites groups
+            hitmarkers.add(self)
+            all_sprites.add(self)
         
         def update(self):
             hit_animation(self)
@@ -360,6 +365,7 @@ mages = pygame.sprite.Group()
 fireballs = pygame.sprite.Group()
 autoprojectiles = pygame.sprite.Group()
 projectiles = pygame.sprite.Group()
+hitmarkers = pygame.sprite.Group()
 
 # ============== Create tower object ==============
 tower = Tower()
@@ -411,7 +417,7 @@ while running:
     if fireball_timer >= magefire.atk_speed:
 
         # Spawn a new fireball
-        fireball = Fireball()
+        Fireball()
         fireball_timer = 0
 
     # Increase the laser timer
@@ -420,7 +426,7 @@ while running:
     if laser_timer >= magelight.atk_speed:
       
         # Spawn a new laser
-        laser = Projectile()
+        Projectile()
         laser_timer = 0
 
     # Check for fireball collision with enemies
@@ -429,10 +435,9 @@ while running:
         for enemy in enemy_list:
             
             # Create fireball hit marker at the last position of the fireball
-            
-            fireball_hit_anim = FireballHitAnim(fireball.rect.center)
+            FireballHitAnim(fireball.rect.center)
 
-            all_sprites.add(fireball_hit_anim)
+            # Lower enemy's current health by the projectile damage
             enemy.curr_health -= fireball.damage
             if enemy.curr_health <= 0:
                 enemy.kill()
@@ -445,7 +450,6 @@ while running:
         if tower.curr_health <= 0:
             running = False
     
-
 
     # Draw/render
     screen.blit(background_image, (0, 0))
