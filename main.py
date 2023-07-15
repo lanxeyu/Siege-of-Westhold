@@ -6,11 +6,6 @@ WIDTH = 1280
 HEIGHT = 720
 FPS = 60
 
-# Colors
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-
 # ============== Initialize Pygame ==============
 pygame.init()
 pygame.mixer.init()
@@ -162,7 +157,7 @@ class MageFire(Mage):
 class MageLight(Mage):
     def __init__(self):
         super().__init__()
-        self.atk_speed = 1500
+        self.atk_speed = 3000
         init_animation(self, magelight_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (90, 350)
@@ -180,13 +175,9 @@ class Projectile(pygame.sprite.Sprite):
         self.speed = 5  # Adjust the speed of the projectile
         self.rect = self.image.get_rect()
 
-
         self.start_pos = (71, 334)
-        # self.target_pos = self.find_nearest_enemy(self.start_pos, enemies)
-        self.target_pos = pygame.mouse.get_pos() ######################## testing 
+        self.target_pos = self.find_nearest_enemy(self.start_pos, enemies)
         init_position(self, self.start_pos, self.target_pos)
-
-        self.direction = self.calculate_direction()
 
         # Apply changes to MageLight state
         magelight.frames = magelight_atk_frames
@@ -202,19 +193,20 @@ class Projectile(pygame.sprite.Sprite):
         nearest_enemy = None
 
         for enemy in enemies:
-            distance = (enemy.rect.center - start_pos).length()
+            distance = (pygame.Vector2(enemy.rect.center) - pygame.Vector2(start_pos)).length()
             if distance < min_distance:
                 min_distance = distance
-                nearest_enemy = enemy
+                nearest_enemy = enemy.rect.center
 
         return nearest_enemy
-
-    def calculate_direction(self):
-        direction = pygame.Vector2(self.target_pos) - pygame.Vector2(self.rect.center)
-        return direction.normalize()
     
     def update(self):
         update_position(self)
+
+        # Check if the fireball is offscreen, if yes, kill it
+        if self.rect.right < 0 or self.rect.left > WIDTH or self.rect.bottom < 0 or self.rect.top > HEIGHT:
+            self.kill()
+            
 
 class Laser(Projectile):
     pass
@@ -376,7 +368,7 @@ magelight = MageLight()
 
 # ============== Game loop ==============
 running = True
-spawn_timer = 0
+spawn_timer = 2500
 spawn_delay = 3000  # Time delay in milliseconds for spawning a new enemy
 enemy_count = 1  # Initial number of enemies
 fireball_timer = 0
@@ -420,14 +412,15 @@ while running:
         Fireball()
         fireball_timer = 0
 
-    # Increase the laser timer
-    laser_timer += clock.get_time()
-    # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
-    if laser_timer >= magelight.atk_speed:
-      
-        # Spawn a new laser
-        Projectile()
-        laser_timer = 0
+    if enemies is not None:
+        # Increase the laser timer
+        laser_timer += clock.get_time()
+        # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
+        if laser_timer >= magelight.atk_speed:
+        
+            # Spawn a new laser
+            Projectile()
+            laser_timer = 0
 
     # Check for fireball collision with enemies
     fireball_hits = pygame.sprite.groupcollide(fireballs, enemies, True, False)
@@ -456,7 +449,7 @@ while running:
     all_sprites.draw(screen)
     
     # Display the Tower health on the screen
-    health_text = font.render("Health: {}".format(tower.curr_health), True, WHITE)
+    health_text = font.render("Health: {}".format(tower.curr_health), True, (255, 255, 255))
     screen.blit(health_text, (50, 50))
     
     pygame.display.flip()
