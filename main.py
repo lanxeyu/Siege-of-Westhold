@@ -157,7 +157,7 @@ class MageFire(Mage):
 class MageLight(Mage):
     def __init__(self):
         super().__init__()
-        self.atk_speed = 3000
+        self.atk_speed = 200
         init_animation(self, magelight_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (90, 350)
@@ -165,17 +165,49 @@ class MageLight(Mage):
     def update(self):
         super().update(magelight_frames)
 
-# ============== Auto-firing Projectile classes ==============
+# ============== Projectile classes ==============
 class Projectile(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
+        
+        # Add to projectiles, and all_sprite groups
+        projectiles.add(self)
+        all_sprites.add(self)
+
+    def find_nearest_enemy(self, start_pos, enemies):
+        # Set initial distance comparator to infinite
+        min_distance = float('inf')
+        nearest_enemy = None
+
+        # Check the distance from the start position to every enemy
+        for enemy in enemies:
+            distance = (pygame.Vector2(enemy.rect.center) - pygame.Vector2(start_pos)).length()
+            if distance < min_distance:
+                min_distance = distance
+                nearest_enemy = enemy
+
+        return nearest_enemy.position
+    
+    def update(self):
+        update_animation(self)
+        update_position(self)
+
+        # Check if the projectil is offscreen, if yes, kill it
+        if self.rect.right < 0 or self.rect.left > WIDTH or self.rect.bottom < 0 or self.rect.top > HEIGHT:
+            self.kill()
+            
+
+class Laser(Projectile):
+    def __init__(self):
+        super().__init__()
+        self.speed = 20.0
+        self.damage = 1
+
         self.image = pygame.Surface((10, 10))  # Adjust the size of the projectile
         self.image.fill((255, 0, 0))  # Set the color of the projectile
-
-        self.speed = 5  # Adjust the speed of the projectile
         self.rect = self.image.get_rect()
 
-        self.start_pos = (71, 334)
+        self.start_pos = (90, 334)
         self.target_pos = self.find_nearest_enemy(self.start_pos, enemies)
         init_position(self, self.start_pos, self.target_pos)
 
@@ -183,46 +215,21 @@ class Projectile(pygame.sprite.Sprite):
         magelight.frames = magelight_atk_frames
         magelight.is_attacking = True
 
-        # Add to auto-projectiles, projectiles, and all_sprite groups
-        autoprojectiles.add(self)
-        projectiles.add(self)
-        all_sprites.add(self)
-
-    def find_nearest_enemy(self, start_pos, enemies):
-        min_distance = float('inf')
-        nearest_enemy = None
-
-        for enemy in enemies:
-            distance = (pygame.Vector2(enemy.rect.center) - pygame.Vector2(start_pos)).length()
-            if distance < min_distance:
-                min_distance = distance
-                nearest_enemy = enemy.rect.center
-
-        return nearest_enemy
-    
     def update(self):
         update_position(self)
-
-        # Check if the fireball is offscreen, if yes, kill it
-        if self.rect.right < 0 or self.rect.left > WIDTH or self.rect.bottom < 0 or self.rect.top > HEIGHT:
-            self.kill()
-            
-
-class Laser(Projectile):
-    pass
+        # super.update(self)
 
 
-# ============== Player-controlled Fireball class ==============
-class Fireball(pygame.sprite.Sprite):
+class Fireball(Projectile):
     def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
+        super().__init__()
         self.speed = 10.0
-        self.damage = 1
+        self.damage = 2
 
         init_animation(self, fireball_frames)
         self.rect = self.image.get_rect()
         
-        self.start_pos = (71, 334)
+        self.start_pos = (70, 334)
         self.target_pos = pygame.mouse.get_pos()
         init_position(self, self.start_pos, self.target_pos)
 
@@ -230,23 +237,14 @@ class Fireball(pygame.sprite.Sprite):
         magefire.frames = magefire_atk_frames
         magefire.is_attacking = True
 
-        # Add to fireballs, projectiles, and all_sprite groups
-        fireballs.add(self)
-        projectiles.add(self)
-        all_sprites.add(self)
-
     def update(self):
-        update_animation(self)
-        update_position(self)
-
-        # Check if the fireball is offscreen, if yes, kill it
-        if self.rect.right < 0 or self.rect.left > WIDTH or self.rect.bottom < 0 or self.rect.top > HEIGHT:
-            self.kill()
+        super().update()
             
 class FireballHitAnim(pygame.sprite.Sprite):
         def __init__(self, fireball_collision_point):
             pygame.sprite.Sprite.__init__(self)
             init_animation(self, fireball_hit_frames)
+            self.animation_delay = 100
             self.rect = self.image.get_rect()
             self.rect.center = fireball_collision_point
 
@@ -255,7 +253,10 @@ class FireballHitAnim(pygame.sprite.Sprite):
             all_sprites.add(self)
         
         def update(self):
-            hit_animation(self)
+            if self.curr_frame_index < len(self.frames) - 1:
+                update_animation(self)
+            else:
+                self.kill()
 
 # ============== Enemy classes ==============
 class Enemy(pygame.sprite.Sprite):
@@ -354,8 +355,6 @@ charger_frames = load_frames(charger_sheet, 5)
 all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 mages = pygame.sprite.Group()
-fireballs = pygame.sprite.Group()
-autoprojectiles = pygame.sprite.Group()
 projectiles = pygame.sprite.Group()
 hitmarkers = pygame.sprite.Group()
 
@@ -378,15 +377,16 @@ while running:
     # Keep the loop running at the right speed
     clock.tick(FPS)
     
-    # print(magefire.is_attacking)
 
     # Process events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
+
     # Update
     all_sprites.update()
+
 
     # Spawn a new enemy if the timer exceeds the spawn delay
     spawn_timer += clock.get_time()
@@ -403,6 +403,7 @@ while running:
             # Increase the number of enemies spawned over time
             enemy_count += 0.1
 
+
     # Increase the fireball timer
     fireball_timer += clock.get_time()
     # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
@@ -412,26 +413,28 @@ while running:
         Fireball()
         fireball_timer = 0
 
-    if enemies is not None:
+
+    if len(enemies) > 0:
         # Increase the laser timer
         laser_timer += clock.get_time()
         # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
         if laser_timer >= magelight.atk_speed:
-        
+                    
             # Spawn a new laser
-            Projectile()
+            Laser()
             laser_timer = 0
 
-    # Check for fireball collision with enemies
-    fireball_hits = pygame.sprite.groupcollide(fireballs, enemies, True, False)
-    for fireball, enemy_list in fireball_hits.items():
+
+    # Check for projectile collision with enemies
+    projectile_hits = pygame.sprite.groupcollide(projectiles, enemies, True, False)
+    for projectile, enemy_list in projectile_hits.items():
         for enemy in enemy_list:
             
             # Create fireball hit marker at the last position of the fireball
-            FireballHitAnim(fireball.rect.center)
+            FireballHitAnim(projectile.rect.center)
 
             # Lower enemy's current health by the projectile damage
-            enemy.curr_health -= fireball.damage
+            enemy.curr_health -= projectile.damage
             if enemy.curr_health <= 0:
                 enemy.kill()
 
