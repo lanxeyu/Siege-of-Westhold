@@ -121,13 +121,20 @@ class Tower(pygame.sprite.Sprite):
         self.max_health = 100
         self.curr_health = 100
 
+        # Add to all_sprites group
+        all_sprites.add(self)
+
 # ============== Mage classes ==============
 class Mage(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.is_attacking = False
 
-    def update(self):
+        # Add to mages and all_sprites groups
+        mages.add(self)
+        all_sprites.add(self)
+
+    def update(self, frames):
         if self.is_attacking:
             # Check if the current frame index is not the last frame index
             if self.curr_frame_index < len(self.frames) - 1:
@@ -136,7 +143,7 @@ class Mage(pygame.sprite.Sprite):
                 self.is_attacking = False
                 self.image = self.frames[0]  # Reset to the idle frame
                 self.curr_frame_index = 0
-                self.frames = magefire_frames
+                self.frames = frames
         else:
             update_animation(self)
         
@@ -149,7 +156,7 @@ class MageFire(Mage):
         self.rect.center = (70, 350)
 
     def update(self):
-        super().update()
+        super().update(magefire_frames)
 
 class MageLight(Mage):
     def __init__(self):
@@ -157,10 +164,10 @@ class MageLight(Mage):
         self.atk_speed = 1500
         init_animation(self, magelight_frames)
         self.rect = self.image.get_rect()
-        self.rect.center = (86, 350)
+        self.rect.center = (90, 350)
 
     def update(self):
-        super().update()
+        super().update(magelight_frames)
 
 # ============== Auto-firing Projectile classes ==============
 class Projectile(pygame.sprite.Sprite):
@@ -179,6 +186,15 @@ class Projectile(pygame.sprite.Sprite):
         init_position(self, self.start_pos, self.target_pos)
 
         self.direction = self.calculate_direction()
+
+        # Apply changes to MageLight state
+        magelight.frames = magelight_atk_frames
+        magelight.is_attacking = True
+
+        # Add to auto-projectiles, projectiles, and all_sprite groups
+        autoprojectiles.add(self)
+        projectiles.add(self)
+        all_sprites.add(self)
 
     def find_nearest_enemy(self, start_pos, enemies):
         min_distance = float('inf')
@@ -217,6 +233,15 @@ class Fireball(pygame.sprite.Sprite):
         self.target_pos = pygame.mouse.get_pos()
         init_position(self, self.start_pos, self.target_pos)
 
+        # Apply changes to MageFire state
+        magefire.frames = magefire_atk_frames
+        magefire.is_attacking = True
+
+        # Add to fireballs, projectiles, and all_sprite groups
+        fireballs.add(self)
+        projectiles.add(self)
+        all_sprites.add(self)
+
     def update(self):
         update_animation(self)
         update_position(self)
@@ -239,6 +264,10 @@ class FireballHitAnim(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
+
+        # Add to enemies and all_sprites groups
+        enemies.add(self)
+        all_sprites.add(self)
  
     def update(self):
         update_animation(self)
@@ -310,7 +339,7 @@ magefire_atk_frames = load_frames(magefire_atk_sheet, 3)
 
 magelight_sheet = pygame.image.load("assets/graphics/magelight.png").convert_alpha()
 magelight_frames = load_frames(magelight_sheet, 4)
-magelight_atk_sheet = pygame.image.load("assets/graphics/magefire_atk.png").convert_alpha()
+magelight_atk_sheet = pygame.image.load("assets/graphics/magelight_atk.png").convert_alpha()
 magelight_atk_frames = load_frames(magelight_atk_sheet, 3)
 
 fireball_sheet = pygame.image.load("assets/graphics/fireball.png").convert_alpha()
@@ -329,17 +358,15 @@ all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 mages = pygame.sprite.Group()
 fireballs = pygame.sprite.Group()
+autoprojectiles = pygame.sprite.Group()
 projectiles = pygame.sprite.Group()
 
-# ============== Create tower object and add it to sprite groups ==============
+# ============== Create tower object ==============
 tower = Tower()
-all_sprites.add(tower)
 
-# ============== Create mage objects and add them to sprite groups ==============
+# ============== Create mage objects ==============
 magefire = MageFire()
 magelight = MageLight()
-mages.add(magefire, magelight)
-all_sprites.add(magefire, magelight)
 
 # ============== Game loop ==============
 running = True
@@ -373,8 +400,6 @@ while running:
                 new_enemy = Mob()
             elif enemy_type == 'Charger':
                 new_enemy = Charger()
-            all_sprites.add(new_enemy)
-            enemies.add(new_enemy)
             spawn_timer = 0
 
             # Increase the number of enemies spawned over time
@@ -384,28 +409,18 @@ while running:
     fireball_timer += clock.get_time()
     # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
     if fireball_timer >= magefire.atk_speed:
-        # Get the current mouse position
-        magefire.frames = magefire_atk_frames
-        magefire.is_attacking = True
-                
+
         # Spawn a new fireball
         fireball = Fireball()
-        all_sprites.add(fireball)
-        fireballs.add(fireball)
         fireball_timer = 0
 
     # Increase the laser timer
     laser_timer += clock.get_time()
     # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
     if laser_timer >= magelight.atk_speed:
-        # Get the current mouse position
-        magelight.frames = magelight_atk_frames
-        magelight.is_attacking = True
-        
+      
         # Spawn a new laser
         laser = Projectile()
-        all_sprites.add(laser)
-        projectiles.add(laser)
         laser_timer = 0
 
     # Check for fireball collision with enemies
