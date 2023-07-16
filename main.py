@@ -1,5 +1,4 @@
-import pygame
-import random
+import pygame, random, math
 
 # Game constants
 WIDTH = 1280
@@ -157,7 +156,7 @@ class MageFire(Mage):
 class MageLight(Mage):
     def __init__(self):
         super().__init__()
-        self.atk_speed = 200
+        self.atk_speed = 1700
         init_animation(self, magelight_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (90, 350)
@@ -192,7 +191,7 @@ class Projectile(pygame.sprite.Sprite):
         update_animation(self)
         update_position(self)
 
-        # Check if the projectil is offscreen, if yes, kill it
+        # Check if the projectile is offscreen, if yes, kill it
         if self.rect.right < 0 or self.rect.left > WIDTH or self.rect.bottom < 0 or self.rect.top > HEIGHT:
             self.kill()
             
@@ -200,11 +199,10 @@ class Projectile(pygame.sprite.Sprite):
 class Laser(Projectile):
     def __init__(self):
         super().__init__()
-        self.speed = 20.0
+        self.speed = 15.0
         self.damage = 1
 
-        self.image = pygame.Surface((10, 10))  # Adjust the size of the projectile
-        self.image.fill((255, 0, 0))  # Set the color of the projectile
+        init_animation(self, laser_frames)
         self.rect = self.image.get_rect()
 
         self.start_pos = (90, 334)
@@ -214,10 +212,6 @@ class Laser(Projectile):
         # Apply changes to MageLight state
         magelight.frames = magelight_atk_frames
         magelight.is_attacking = True
-
-    def update(self):
-        update_position(self)
-        # super.update(self)
 
 
 class Fireball(Projectile):
@@ -237,26 +231,34 @@ class Fireball(Projectile):
         magefire.frames = magefire_atk_frames
         magefire.is_attacking = True
 
-    def update(self):
-        super().update()
-            
-class FireballHitAnim(pygame.sprite.Sprite):
-        def __init__(self, fireball_collision_point):
-            pygame.sprite.Sprite.__init__(self)
-            init_animation(self, fireball_hit_frames)
-            self.animation_delay = 100
-            self.rect = self.image.get_rect()
-            self.rect.center = fireball_collision_point
 
-            # Add to hitmarkers and all_sprites groups
-            hitmarkers.add(self)
-            all_sprites.add(self)
-        
-        def update(self):
-            if self.curr_frame_index < len(self.frames) - 1:
-                update_animation(self)
-            else:
-                self.kill()
+# ============== HitMarker classes ==============
+class HitMarker(pygame.sprite.Sprite):
+    def __init__(self, collision_point, frames):
+        pygame.sprite.Sprite.__init__(self)
+        init_animation(self, frames)
+        self.animation_delay = 100
+        self.rect = self.image.get_rect(center=collision_point)
+
+        # Add to hitmarkers and all_sprites groups
+        hitmarkers.add(self)
+        all_sprites.add(self)
+
+    def update(self):
+        if self.curr_frame_index < len(self.frames) - 1:
+            update_animation(self)
+        else:
+            self.kill()
+
+
+class FireballHitMarker(HitMarker):
+    def __init__(self, collision_point):
+        super().__init__(collision_point, fireball_hit_frames)
+
+
+class LaserHitMarker(HitMarker):
+    def __init__(self, collision_point):
+        super().__init__(collision_point, laser_hit_frames)
 
 # ============== Enemy classes ==============
 class Enemy(pygame.sprite.Sprite):
@@ -283,9 +285,6 @@ class Mob(Enemy):
 
         select_spawn(self)
         init_position(self, self.rect.center, tower.rect.center)
-
-    def update(self):
-        super().update()
 
 class Charger(Enemy):
     def __init__(self):
@@ -345,6 +344,11 @@ fireball_frames = load_frames(fireball_sheet, 4)
 fireball_hit_sheet = pygame.image.load("assets/graphics/fireball_hit.png").convert_alpha()
 fireball_hit_frames = load_frames(fireball_hit_sheet, 4)
 
+laser_sheet = pygame.image.load("assets/graphics/laser.png").convert_alpha()
+laser_frames = load_frames(laser_sheet, 4)
+laser_hit_sheet = pygame.image.load("assets/graphics/laser_hit.png").convert_alpha()
+laser_hit_frames = load_frames(laser_hit_sheet, 4)
+
 mob_sheet = pygame.image.load("assets/graphics/mob.png").convert_alpha()
 mob_frames = load_frames(mob_sheet, 6)
 
@@ -372,6 +376,8 @@ spawn_delay = 3000  # Time delay in milliseconds for spawning a new enemy
 enemy_count = 1  # Initial number of enemies
 fireball_timer = 0
 laser_timer = 0
+hit_cd_duration = 200  # Hit cooldown duration in milliseconds
+cooldowns = {}  # Dictionary to store cooldown timestamps for each projectile-enemy pair
 
 while running:
     # Keep the loop running at the right speed
@@ -384,10 +390,10 @@ while running:
             running = False
 
 
-    # Update
+    # Update the animations and positions of all existing sprites
     all_sprites.update()
 
-
+    # ===================== ENEMY SPAWN =====================
     # Spawn a new enemy if the timer exceeds the spawn delay
     spawn_timer += clock.get_time()
     if spawn_timer >= spawn_delay:
@@ -403,18 +409,18 @@ while running:
             # Increase the number of enemies spawned over time
             enemy_count += 0.1
 
-
-    # Increase the fireball timer
-    fireball_timer += clock.get_time()
-    # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
-    if fireball_timer >= magefire.atk_speed:
-
-        # Spawn a new fireball
-        Fireball()
-        fireball_timer = 0
-
-
+    # ===================== PROJECTILE SPAWN =====================
     if len(enemies) > 0:
+        # Increase the fireball timer
+        fireball_timer += clock.get_time()
+        # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
+        if fireball_timer >= magefire.atk_speed:
+
+            # Spawn a new fireball
+            Fireball()
+            fireball_timer = 0
+
+
         # Increase the laser timer
         laser_timer += clock.get_time()
         # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
@@ -425,18 +431,31 @@ while running:
             laser_timer = 0
 
 
-    # Check for projectile collision with enemies
-    projectile_hits = pygame.sprite.groupcollide(projectiles, enemies, True, False)
+    # ===================== PROJECTILE-ENEMY COLLISION =====================
+    # Detect collisions between projectile group and enemies group
+    projectile_hits = pygame.sprite.groupcollide(projectiles, enemies, False, False)
     for projectile, enemy_list in projectile_hits.items():
         for enemy in enemy_list:
-            
-            # Create fireball hit marker at the last position of the fireball
-            FireballHitAnim(projectile.rect.center)
+            # Create a unique key for the projectile-enemy pair
+            pair_key = (projectile, enemy)
 
-            # Lower enemy's current health by the projectile damage
-            enemy.curr_health -= projectile.damage
-            if enemy.curr_health <= 0:
-                enemy.kill()
+            # Check if the cooldown for this pair has expired
+            if pair_key not in cooldowns or pygame.time.get_ticks() - cooldowns[pair_key] >= hit_cd_duration:
+                # Update the cooldown timestamp for this pair
+                cooldowns[pair_key] = pygame.time.get_ticks()
+
+                if isinstance(projectile, Laser):
+                    # Create fireball hit marker at the last position of the fireball
+                    LaserHitMarker(projectile.rect.center)
+                else: 
+                    projectile.kill()
+                    # Create fireball hit marker at the last position of the fireball
+                    FireballHitMarker(projectile.rect.center)
+
+                # Lower enemy's current health by the projectile damage
+                enemy.curr_health -= projectile.damage
+                if enemy.curr_health <= 0:
+                    enemy.kill()
 
     # Check for collisions between tower and enemies
     tower_hits = pygame.sprite.spritecollide(tower, enemies, True)
