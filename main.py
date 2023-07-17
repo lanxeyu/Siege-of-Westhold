@@ -1,32 +1,6 @@
 import pygame, random
 
-
-# Game constants
-WIDTH = 1280
-HEIGHT = 720
-FPS = 60
-
-# ============== Initialize Pygame ==============
-pygame.init()
-pygame.mixer.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Siege of Westhold")
-clock = pygame.time.Clock()
-font = pygame.font.Font(None, 36)
-
 # ============== Sprite animation and position functions ==============
-# Split sprite sheet into frames and return an array containing the frames
-# def load_frames(sprite_sheet, num_of_frames):
-#     frames = []  # List to store the animation frames
-#     # Split the sprite sheet into individual frames
-#     frame_width = sprite_sheet.get_width() // num_of_frames
-#     frame_height = sprite_sheet.get_height()
-#     for i in range(num_of_frames):
-#         frame = sprite_sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
-#         frames.append(frame)
-    
-#     return frames
-
 # Initialize sprite animation values
 def init_animation(self, frames):
     self.frames = frames
@@ -335,6 +309,21 @@ class Charger(Enemy):
         else:
             super().update()
 
+
+# Screen constants
+WIDTH = 1280
+HEIGHT = 720
+FPS = 60
+
+# ============== Initialize Pygame ==============
+pygame.init()
+pygame.mixer.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Siege of Westhold")
+clock = pygame.time.Clock()
+health_font = pygame.font.Font(None, 24)
+
+# Load graphics assets
 from load_assets import *
 
 # ============== Create sprite groups ==============
@@ -439,7 +428,9 @@ while running:
                 if enemy.curr_health <= 0:
                     enemy.kill()
 
-    # Check for collisions between tower and enemies
+
+    # ===================== TOWER-ENEMY COLLISION =====================
+    # Detect collisions between tower group and enemies group
     tower_hits = pygame.sprite.spritecollide(tower, enemies, True)
     if tower_hits:
         tower.curr_health -= 1
@@ -453,8 +444,9 @@ while running:
     all_sprites.draw(screen)
     
     # Display the Tower health on the screen
-    health_text = font.render("Health: {}".format(tower.curr_health), True, (255, 255, 255))
-    screen.blit(health_text, (50, 50))
+    health_text = health_font.render("{}".format(tower.curr_health), True, (200, 30, 30))
+    screen.blit(health_text, (75, 391))
+    screen.blit(heart_image, (57, 390))
     
     pygame.display.flip()
 

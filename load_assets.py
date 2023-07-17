@@ -15,6 +15,7 @@ def load_frames(sprite_sheet, num_of_frames):
 
 # Load static images
 background_image = pygame.image.load("assets/graphics/background.png").convert()
+heart_image = pygame.image.load("assets/graphics/heart.png").convert_alpha()
 
 # Define a list of image paths and frame counts
 frame_info = [
