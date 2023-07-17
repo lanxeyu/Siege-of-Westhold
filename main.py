@@ -1,4 +1,5 @@
-import pygame, random, math
+import pygame, random
+
 
 # Game constants
 WIDTH = 1280
@@ -15,16 +16,16 @@ font = pygame.font.Font(None, 36)
 
 # ============== Sprite animation and position functions ==============
 # Split sprite sheet into frames and return an array containing the frames
-def load_frames(sprite_sheet, num_of_frames):
-    frames = []  # List to store the animation frames
-    # Split the sprite sheet into individual frames
-    frame_width = sprite_sheet.get_width() // num_of_frames
-    frame_height = sprite_sheet.get_height()
-    for i in range(num_of_frames):
-        frame = sprite_sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
-        frames.append(frame)
+# def load_frames(sprite_sheet, num_of_frames):
+#     frames = []  # List to store the animation frames
+#     # Split the sprite sheet into individual frames
+#     frame_width = sprite_sheet.get_width() // num_of_frames
+#     frame_height = sprite_sheet.get_height()
+#     for i in range(num_of_frames):
+#         frame = sprite_sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
+#         frames.append(frame)
     
-    return frames
+#     return frames
 
 # Initialize sprite animation values
 def init_animation(self, frames):
@@ -119,6 +120,7 @@ class Tower(pygame.sprite.Sprite):
         # Add to all_sprites group
         all_sprites.add(self)
 
+
 # ============== Mage classes ==============
 class Mage(pygame.sprite.Sprite):
     def __init__(self):
@@ -142,6 +144,7 @@ class Mage(pygame.sprite.Sprite):
         else:
             update_animation(self)
         
+
 class MageFire(Mage):
     def __init__(self):
         super().__init__()
@@ -153,6 +156,7 @@ class MageFire(Mage):
     def update(self):
         super().update(magefire_frames)
 
+
 class MageLight(Mage):
     def __init__(self):
         super().__init__()
@@ -163,6 +167,7 @@ class MageLight(Mage):
 
     def update(self):
         super().update(magelight_frames)
+
 
 # ============== Projectile classes ==============
 class Projectile(pygame.sprite.Sprite):
@@ -260,6 +265,7 @@ class LaserHitMarker(HitMarker):
     def __init__(self, collision_point):
         super().__init__(collision_point, laser_hit_frames)
 
+
 # ============== Enemy classes ==============
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
@@ -273,6 +279,7 @@ class Enemy(pygame.sprite.Sprite):
         update_animation(self)
         update_position(self)
 
+
 class Mob(Enemy):
     def __init__(self):
         super().__init__()
@@ -285,6 +292,7 @@ class Mob(Enemy):
 
         select_spawn(self)
         init_position(self, self.rect.center, tower.rect.center)
+
 
 class Charger(Enemy):
     def __init__(self):
@@ -327,33 +335,7 @@ class Charger(Enemy):
         else:
             super().update()
 
-# ============== Load graphics assets ==============
-background_image = pygame.image.load("assets/graphics/background.png").convert()
-magefire_sheet = pygame.image.load("assets/graphics/magefire.png").convert_alpha()
-magefire_frames = load_frames(magefire_sheet, 4)
-magefire_atk_sheet = pygame.image.load("assets/graphics/magefire_atk.png").convert_alpha()
-magefire_atk_frames = load_frames(magefire_atk_sheet, 3)
-
-magelight_sheet = pygame.image.load("assets/graphics/magelight.png").convert_alpha()
-magelight_frames = load_frames(magelight_sheet, 4)
-magelight_atk_sheet = pygame.image.load("assets/graphics/magelight_atk.png").convert_alpha()
-magelight_atk_frames = load_frames(magelight_atk_sheet, 3)
-
-fireball_sheet = pygame.image.load("assets/graphics/fireball.png").convert_alpha()
-fireball_frames = load_frames(fireball_sheet, 4)
-fireball_hit_sheet = pygame.image.load("assets/graphics/fireball_hit.png").convert_alpha()
-fireball_hit_frames = load_frames(fireball_hit_sheet, 4)
-
-laser_sheet = pygame.image.load("assets/graphics/laser.png").convert_alpha()
-laser_frames = load_frames(laser_sheet, 4)
-laser_hit_sheet = pygame.image.load("assets/graphics/laser_hit.png").convert_alpha()
-laser_hit_frames = load_frames(laser_hit_sheet, 4)
-
-mob_sheet = pygame.image.load("assets/graphics/mob.png").convert_alpha()
-mob_frames = load_frames(mob_sheet, 6)
-
-charger_sheet = pygame.image.load("assets/graphics/charger.png").convert_alpha()
-charger_frames = load_frames(charger_sheet, 5)
+from load_assets import *
 
 # ============== Create sprite groups ==============
 all_sprites = pygame.sprite.Group()
