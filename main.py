@@ -191,7 +191,7 @@ class Fireball(Projectile):
     def __init__(self):
         super().__init__()
         self.speed = 10.0
-        self.damage = 2
+        self.damage = 4
 
         init_animation(self, fireball_frames)
         self.rect = self.image.get_rect()
@@ -209,7 +209,7 @@ class Laser(Projectile):
     def __init__(self):
         super().__init__()
         self.speed = 15.0
-        self.damage = 1
+        self.damage = 2
 
         init_animation(self, laser_frames)
         self.rect = self.image.get_rect()
@@ -226,8 +226,9 @@ class Laser(Projectile):
 class Tornado(Projectile):
     def __init__(self):
         super().__init__()
-        self.speed = 15.0
-        self.damage = 1
+        self.speed = 4.0
+        self.damage = 0.1
+        self.atk_range = 500
 
         init_animation(self, tornado_frames)
         self.rect = self.image.get_rect()
@@ -240,6 +241,15 @@ class Tornado(Projectile):
         magewind.frames = magewind_atk_frames
         magewind.is_attacking = True
 
+    def update(self):
+        update_animation(self)
+        update_position(self)
+
+        # Check if the projectile is offscreen or at a distance of 10 from start_pos, if yes, kill it
+        if (self.rect.right < 0 or self.rect.left > WIDTH or
+                self.rect.bottom < 0 or self.rect.top > HEIGHT or
+                pygame.Vector2(self.rect.center).distance_to(self.start_pos) >= self.atk_range):
+            self.kill()
 
 # ============== HitMarker classes ==============
 class HitMarker(pygame.sprite.Sprite):
@@ -292,8 +302,8 @@ class Enemy(pygame.sprite.Sprite):
 class Mob(Enemy):
     def __init__(self):
         super().__init__()
-        self.max_health = 2
-        self.curr_health = 2
+        self.max_health = 4
+        self.curr_health = 4
         self.speed = 0.5
         
         init_animation(self, mob_frames)
@@ -306,8 +316,8 @@ class Mob(Enemy):
 class Charger(Enemy):
     def __init__(self):
         super().__init__()
-        self.max_health = 3
-        self.curr_health = 3
+        self.max_health = 7
+        self.curr_health = 7
         self.speed = 1
         self.dash_distance = 400  # Distance from the tower to pause and dash
         self.dash_timer = 0
@@ -322,8 +332,6 @@ class Charger(Enemy):
 
     def update(self):
 
-        update_animation(self)
-
         # Once the Charger gets to a certain distance to the tower, pause movement to being charging
         if (self.position - tower.rect.center).length() <= self.dash_distance:
             self.dash_timer += clock.get_time()
@@ -333,13 +341,7 @@ class Charger(Enemy):
                 
                 # Normalize the direction vector using a higher speed value
                 self.velocity.scale_to_length(self.dash_speed)
-
-                # Move the sprite based on the velocity vector
-                self.position += self.velocity
-
-                # Update the rect's position using float values
-                self.rect.centerx = self.position.x
-                self.rect.centery = self.position.y
+                super().update()
 
         else:
             super().update()
@@ -384,7 +386,7 @@ enemy_count = 1  # Initial number of enemies
 fireball_timer = 0
 laser_timer = 0
 tornado_timer = 0
-hit_cd_duration = 200  # Hit cooldown duration in milliseconds
+hit_cd_duration = 50  # Hit cooldown duration in milliseconds
 cooldowns = {}  # Dictionary to store cooldown timestamps for each projectile-enemy pair
 
 while running:
@@ -438,7 +440,8 @@ while running:
             Laser()
             laser_timer = 0
 
-        # Increase the laser timer
+
+        # Increase the tornado timer
         tornado_timer += clock.get_time()
         # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
         if tornado_timer >= magewind.atk_speed:
@@ -464,13 +467,13 @@ while running:
                 # Based on the type of projectile, create the appropriate hitmarker and kill projectile if necessary
                 if isinstance(projectile, Laser):
                     # Create hitmarker at collision point
-                    LaserHitMarker(projectile.rect.center)
+                    LaserHitMarker(enemy.rect.center)
                 elif isinstance(projectile, Fireball): 
                     projectile.kill()
                     FireballHitMarker(projectile.rect.center)
                 elif isinstance(projectile, Tornado):
-                    TornadoHitMarker(projectile.rect.center)
-
+                    enemy.position = projectile.position
+                    TornadoHitMarker(enemy.rect.center)
 
                 # Lower enemy's current health by the projectile damage
                 enemy.curr_health -= projectile.damage
@@ -488,7 +491,7 @@ while running:
             running = False
     
 
-    # Draw/render
+    #  ===================== RENDER =====================
     screen.blit(background_image, (0, 0))
     all_sprites.draw(screen)
     
