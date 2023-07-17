@@ -143,6 +143,18 @@ class MageLight(Mage):
         super().update(magelight_frames)
 
 
+class MageWind(Mage):
+    def __init__(self):
+        super().__init__()
+        self.atk_speed = 2000
+        init_animation(self, magewind_frames)
+        self.rect = self.image.get_rect()
+        self.rect.center = (90, 366)
+
+    def update(self):
+        super().update(magewind_frames)
+
+
 # ============== Projectile classes ==============
 class Projectile(pygame.sprite.Sprite):
     def __init__(self):
@@ -175,6 +187,24 @@ class Projectile(pygame.sprite.Sprite):
             self.kill()
             
 
+class Fireball(Projectile):
+    def __init__(self):
+        super().__init__()
+        self.speed = 10.0
+        self.damage = 2
+
+        init_animation(self, fireball_frames)
+        self.rect = self.image.get_rect()
+        
+        self.start_pos = (70, 334)
+        self.target_pos = pygame.mouse.get_pos()
+        init_position(self, self.start_pos, self.target_pos)
+
+        # Apply changes to MageFire state
+        magefire.frames = magefire_atk_frames
+        magefire.is_attacking = True
+
+
 class Laser(Projectile):
     def __init__(self):
         super().__init__()
@@ -193,22 +223,22 @@ class Laser(Projectile):
         magelight.is_attacking = True
 
 
-class Fireball(Projectile):
+class Tornado(Projectile):
     def __init__(self):
         super().__init__()
-        self.speed = 10.0
-        self.damage = 2
+        self.speed = 15.0
+        self.damage = 1
 
-        init_animation(self, fireball_frames)
+        init_animation(self, tornado_frames)
         self.rect = self.image.get_rect()
-        
-        self.start_pos = (70, 334)
-        self.target_pos = pygame.mouse.get_pos()
+
+        self.start_pos = (90, 350)
+        self.target_pos = self.find_nearest_enemy(self.start_pos, enemies)
         init_position(self, self.start_pos, self.target_pos)
 
-        # Apply changes to MageFire state
-        magefire.frames = magefire_atk_frames
-        magefire.is_attacking = True
+        # Apply changes to MageWind state
+        magewind.frames = magewind_atk_frames
+        magewind.is_attacking = True
 
 
 # ============== HitMarker classes ==============
@@ -238,6 +268,11 @@ class FireballHitMarker(HitMarker):
 class LaserHitMarker(HitMarker):
     def __init__(self, collision_point):
         super().__init__(collision_point, laser_hit_frames)
+
+
+class TornadoHitMarker(HitMarker):
+    def __init__(self, collision_point):
+        super().__init__(collision_point, tornado_hit_frames)
 
 
 # ============== Enemy classes ==============
@@ -339,6 +374,7 @@ tower = Tower()
 # ============== Create mage objects ==============
 magefire = MageFire()
 magelight = MageLight()
+magewind = MageWind()
 
 # ============== Game loop ==============
 running = True
@@ -347,6 +383,7 @@ spawn_delay = 3000  # Time delay in milliseconds for spawning a new enemy
 enemy_count = 1  # Initial number of enemies
 fireball_timer = 0
 laser_timer = 0
+tornado_timer = 0
 hit_cd_duration = 200  # Hit cooldown duration in milliseconds
 cooldowns = {}  # Dictionary to store cooldown timestamps for each projectile-enemy pair
 
@@ -401,6 +438,15 @@ while running:
             Laser()
             laser_timer = 0
 
+        # Increase the laser timer
+        tornado_timer += clock.get_time()
+        # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
+        if tornado_timer >= magewind.atk_speed:
+                    
+            # Spawn a new laser
+            Tornado()
+            tornado_timer = 0
+
 
     # ===================== PROJECTILE-ENEMY COLLISION =====================
     # Detect collisions between projectile group and enemies group
@@ -415,13 +461,16 @@ while running:
                 # Update the cooldown timestamp for this pair
                 cooldowns[pair_key] = pygame.time.get_ticks()
 
+                # Based on the type of projectile, create the appropriate hitmarker and kill projectile if necessary
                 if isinstance(projectile, Laser):
-                    # Create fireball hit marker at the last position of the fireball
+                    # Create hitmarker at collision point
                     LaserHitMarker(projectile.rect.center)
-                else: 
+                elif isinstance(projectile, Fireball): 
                     projectile.kill()
-                    # Create fireball hit marker at the last position of the fireball
                     FireballHitMarker(projectile.rect.center)
+                elif isinstance(projectile, Tornado):
+                    TornadoHitMarker(projectile.rect.center)
+
 
                 # Lower enemy's current health by the projectile damage
                 enemy.curr_health -= projectile.damage
