@@ -1,4 +1,4 @@
-<h1>SIEGE OF WESTHOLD</h1>
+<h2>Siege of Westhold (Alpha)</h2>
 
 ![Game Preview](preview.png)
 
