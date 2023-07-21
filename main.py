@@ -122,7 +122,7 @@ class Mage(pygame.sprite.Sprite):
 class MageFire(Mage):
     def __init__(self):
         super().__init__()
-        self.atk_speed = 1000
+        self.atk_speed = 300 # 1000
         init_animation(self, magefire_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (70, 350)
@@ -134,7 +134,7 @@ class MageFire(Mage):
 class MageLight(Mage):
     def __init__(self):
         super().__init__()
-        self.atk_speed = 1700
+        self.atk_speed = 400 # 1700
         init_animation(self, magelight_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (90, 350)
@@ -146,7 +146,7 @@ class MageLight(Mage):
 class MageWind(Mage):
     def __init__(self):
         super().__init__()
-        self.atk_speed = 2000
+        self.atk_speed = 500 # 2000
         init_animation(self, magewind_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (90, 366)
@@ -347,7 +347,7 @@ class Charger(Enemy):
             super().update()
 
 
-# Screen constants
+# ============== Screen constants ==============
 WIDTH = 1280
 HEIGHT = 720
 FPS = 60
@@ -378,7 +378,7 @@ magefire = MageFire()
 magelight = MageLight()
 magewind = MageWind()
 
-# ============== Game loop ==============
+# ============== GAME LOOP INITIALIZE ==============
 running = True
 spawn_timer = 2500
 spawn_delay = 3000  # Time delay in milliseconds for spawning a new enemy
@@ -389,6 +389,8 @@ tornado_timer = 0
 hit_cd_duration = 50  # Hit cooldown duration in milliseconds
 cooldowns = {}  # Dictionary to store cooldown timestamps for each projectile-enemy pair
 
+
+# ============== GAME LOOP ==============
 while running:
     # Keep the loop running at the right speed
     clock.tick(FPS)
