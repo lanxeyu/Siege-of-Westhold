@@ -19,18 +19,27 @@ heart_image = pygame.image.load("assets/graphics/heart.png").convert_alpha()
 
 # Define a list of image paths and frame counts
 frame_info = [
+    # Mage assets
     ("assets/graphics/magefire.png", 4),
     ("assets/graphics/magefire_atk.png", 3),
     ("assets/graphics/magelight.png", 4),
     ("assets/graphics/magelight_atk.png", 3),
     ("assets/graphics/magewind.png", 4),
     ("assets/graphics/magewind_atk.png", 3),
+    ("assets/graphics/mageshock.png", 4),
+    ("assets/graphics/mageshock_atk.png", 3),
+
+    # Projectile assets
     ("assets/graphics/fireball.png", 4),
     ("assets/graphics/fireball_hit.png", 4),
     ("assets/graphics/laser.png", 4),
     ("assets/graphics/laser_hit.png", 4),
     ("assets/graphics/tornado.png", 4),
     ("assets/graphics/tornado_hit.png", 4),
+    ("assets/graphics/energy.png", 4),
+    ("assets/graphics/energy_hit.png", 4),
+
+    # Enemy assets
     ("assets/graphics/mob.png", 6),
     ("assets/graphics/charger.png", 5)
 ]
@@ -44,6 +53,6 @@ for image_path, frame_count in frame_info:
     frames.append(load_frames(image, frame_count))
 
 # Assign the frames to their respective variables using tuple unpacking
-magefire_frames, magefire_atk_frames, magelight_frames, magelight_atk_frames, magewind_frames, magewind_atk_frames, \
-fireball_frames, fireball_hit_frames, laser_frames, laser_hit_frames, tornado_frames, tornado_hit_frames,\
+magefire_frames, magefire_atk_frames, magelight_frames, magelight_atk_frames, magewind_frames, magewind_atk_frames, mageshock_frames, mageshock_atk_frames, \
+fireball_frames, fireball_hit_frames, laser_frames, laser_hit_frames, tornado_frames, tornado_hit_frames, energy_frames, energy_hit_frames,\
 mob_frames, charger_frames = frames

@@ -122,7 +122,7 @@ class Mage(pygame.sprite.Sprite):
 class MageFire(Mage):
     def __init__(self):
         super().__init__()
-        self.atk_speed = 300 # 1000
+        self.atk_speed = 1000 # 1000
         init_animation(self, magefire_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (70, 350)
@@ -134,7 +134,7 @@ class MageFire(Mage):
 class MageLight(Mage):
     def __init__(self):
         super().__init__()
-        self.atk_speed = 400 # 1700
+        self.atk_speed = 2000 # 2000
         init_animation(self, magelight_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (90, 350)
@@ -146,13 +146,25 @@ class MageLight(Mage):
 class MageWind(Mage):
     def __init__(self):
         super().__init__()
-        self.atk_speed = 500 # 2000
+        self.atk_speed = 2500 # 2500
         init_animation(self, magewind_frames)
         self.rect = self.image.get_rect()
         self.rect.center = (90, 366)
 
     def update(self):
         super().update(magewind_frames)
+
+
+class MageShock(Mage):
+    def __init__(self):
+        super().__init__()
+        self.atk_speed = 1500 # 1500
+        init_animation(self, mageshock_frames)
+        self.rect = self.image.get_rect()
+        self.rect.center = (70, 366)
+
+    def update(self):
+        super().update(mageshock_frames)
 
 
 # ============== Projectile classes ==============
@@ -251,6 +263,23 @@ class Tornado(Projectile):
                 pygame.Vector2(self.rect.center).distance_to(self.start_pos) >= self.atk_range):
             self.kill()
 
+
+class Energy(Projectile):
+    def __init__(self):
+        super().__init__()
+        self.speed = 5.0
+        self.damage = 3
+
+        init_animation(self, energy_frames)
+        self.rect = self.image.get_rect()
+
+        self.start_pos = (90, 334)
+        self.target_pos = self.find_nearest_enemy(self.start_pos, enemies)
+        init_position(self, self.start_pos, self.target_pos)
+
+        # Apply changes to MageLight state
+        mageshock.frames = mageshock_atk_frames
+        mageshock.is_attacking = True
 # ============== HitMarker classes ==============
 class HitMarker(pygame.sprite.Sprite):
     def __init__(self, collision_point, frames):
@@ -285,6 +314,9 @@ class TornadoHitMarker(HitMarker):
         super().__init__(collision_point, tornado_hit_frames)
 
 
+class EnergyHitMarker(HitMarker):
+    def __init__(self, collision_point):
+        super().__init__(collision_point, energy_hit_frames)
 # ============== Enemy classes ==============
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
@@ -377,6 +409,7 @@ tower = Tower()
 magefire = MageFire()
 magelight = MageLight()
 magewind = MageWind()
+mageshock = MageShock()
 
 # ============== GAME LOOP INITIALIZE ==============
 running = True
@@ -386,6 +419,7 @@ enemy_count = 1  # Initial number of enemies
 fireball_timer = 0
 laser_timer = 0
 tornado_timer = 0
+energy_timer = 0
 hit_cd_duration = 50  # Hit cooldown duration in milliseconds
 cooldowns = {}  # Dictionary to store cooldown timestamps for each projectile-enemy pair
 
@@ -452,6 +486,15 @@ while running:
             Tornado()
             tornado_timer = 0
 
+        # Increase the tornado timer
+        energy_timer += clock.get_time()
+        # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
+        if energy_timer >= mageshock.atk_speed:
+                    
+            # Spawn a new laser
+            Energy()
+            energy_timer = 0
+
 
     # ===================== PROJECTILE-ENEMY COLLISION =====================
     # Detect collisions between projectile group and enemies group
@@ -476,6 +519,9 @@ while running:
                 elif isinstance(projectile, Tornado):
                     enemy.position = projectile.position
                     TornadoHitMarker(enemy.rect.center)
+                elif isinstance(projectile, Energy):
+                    projectile.kill()
+                    EnergyHitMarker(projectile.rect.center)
 
                 # Lower enemy's current health by the projectile damage
                 enemy.curr_health -= projectile.damage
