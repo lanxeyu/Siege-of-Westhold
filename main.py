@@ -78,6 +78,13 @@ def select_spawn(self):
         self.rect.x = random.randint(WIDTH / 2, WIDTH - self.rect.width)
         self.rect.y = random.randint(HEIGHT, HEIGHT + self.rect.height)
 
+# Spawn projectiles based on set timer
+def spawn_projectile(projectile_class, timer, atk_speed):
+    timer += clock.get_time()
+    if timer >= atk_speed:
+        projectile_class()
+        timer = 0
+    return timer
 
 # ============== Tower class ==============
 class Tower(pygame.sprite.Sprite):
@@ -457,43 +464,10 @@ while running:
 
     # ===================== PROJECTILE SPAWN =====================
     if len(enemies) > 0:
-        # Increase the fireball timer
-        fireball_timer += clock.get_time()
-        # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
-        if fireball_timer >= magefire.atk_speed:
-
-            # Spawn a new fireball
-            Fireball()
-            fireball_timer = 0
-
-
-        # Increase the laser timer
-        laser_timer += clock.get_time()
-        # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
-        if laser_timer >= magelight.atk_speed:
-                    
-            # Spawn a new laser
-            Laser()
-            laser_timer = 0
-
-
-        # Increase the tornado timer
-        tornado_timer += clock.get_time()
-        # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
-        if tornado_timer >= magewind.atk_speed:
-                    
-            # Spawn a new laser
-            Tornado()
-            tornado_timer = 0
-
-        # Increase the tornado timer
-        energy_timer += clock.get_time()
-        # Check if the fireball timer exceeds the desired interval which is equal to the fire mage's attack speed
-        if energy_timer >= mageshock.atk_speed:
-                    
-            # Spawn a new laser
-            Energy()
-            energy_timer = 0
+        fireball_timer = spawn_projectile(Fireball, fireball_timer, magefire.atk_speed)
+        laser_timer = spawn_projectile(Laser, laser_timer, magelight.atk_speed)
+        tornado_timer = spawn_projectile(Tornado, tornado_timer, magewind.atk_speed)
+        energy_timer = spawn_projectile(Energy, energy_timer, mageshock.atk_speed)
 
 
     # ===================== PROJECTILE-ENEMY COLLISION =====================
