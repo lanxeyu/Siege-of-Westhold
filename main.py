@@ -96,7 +96,7 @@ class MageShock(Mage):
 class Projectile(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        
+   
         # Add to projectiles, and all_sprite groups
         projectiles.add(self)
         all_sprites.add(self)
@@ -115,6 +115,28 @@ class Projectile(pygame.sprite.Sprite):
 
         return nearest_enemy.position
     
+    def find_2nd_nearest_enemy(self, start_pos, enemies):
+        # Set initial distances comparators to infinite
+        min_distance = float('inf')
+        second_min_distance = float('inf')
+        nearest_enemy = None
+        second_nearest_enemy = None
+
+        # Check the distance from the start position to every enemy
+        for enemy in enemies:
+            distance = (pygame.Vector2(enemy.rect.center) - pygame.Vector2(start_pos)).length()
+            
+            if distance < min_distance:
+                second_min_distance = min_distance
+                second_nearest_enemy = nearest_enemy
+                min_distance = distance
+                nearest_enemy = enemy
+            elif distance < second_min_distance:
+                second_min_distance = distance
+                second_nearest_enemy = enemy
+
+        return second_nearest_enemy.position if second_nearest_enemy else None
+    
     def update(self):
         update_animation(self)
         update_position(self)
@@ -125,7 +147,7 @@ class Projectile(pygame.sprite.Sprite):
             
 
 class Fireball(Projectile):
-    def __init__(self):
+    def __init__(self, start_pos):
         super().__init__()
         self.speed = 10.0
         self.damage = 4
@@ -133,7 +155,8 @@ class Fireball(Projectile):
         init_animation(self, fireball_frames)
         self.rect = self.image.get_rect()
         
-        self.start_pos = (70, 334)
+        # self.start_pos = (70, 334)
+        self.start_pos = start_pos
         self.target_pos = pygame.mouse.get_pos()
         init_position(self, self.start_pos, self.target_pos)
 
@@ -143,7 +166,7 @@ class Fireball(Projectile):
 
 
 class Laser(Projectile):
-    def __init__(self):
+    def __init__(self, start_pos):
         super().__init__()
         self.speed = 15.0
         self.damage = 2
@@ -151,7 +174,8 @@ class Laser(Projectile):
         init_animation(self, laser_frames)
         self.rect = self.image.get_rect()
 
-        self.start_pos = (90, 334)
+        # self.start_pos = (90, 334)
+        self.start_pos = start_pos
         self.target_pos = self.find_nearest_enemy(self.start_pos, enemies)
         init_position(self, self.start_pos, self.target_pos)
 
@@ -161,7 +185,7 @@ class Laser(Projectile):
 
 
 class Tornado(Projectile):
-    def __init__(self):
+    def __init__(self, start_pos):
         super().__init__()
         self.speed = 4.0
         self.damage = 0.1
@@ -170,7 +194,8 @@ class Tornado(Projectile):
         init_animation(self, tornado_frames)
         self.rect = self.image.get_rect()
 
-        self.start_pos = (90, 350)
+        # self.start_pos = (90, 350)
+        self.start_pos = start_pos
         self.target_pos = self.find_nearest_enemy(self.start_pos, enemies)
         init_position(self, self.start_pos, self.target_pos)
 
@@ -190,21 +215,38 @@ class Tornado(Projectile):
 
 
 class Energy(Projectile):
-    def __init__(self):
+    def __init__(self, start_pos):
         super().__init__()
-        self.speed = 5.0
+        self.speed = 30.0
         self.damage = 3
 
         init_animation(self, energy_frames)
         self.rect = self.image.get_rect()
 
-        self.start_pos = (70, 350)
+        # self.start_pos = (70, 350)
+        self.start_pos = start_pos
         self.target_pos = self.find_nearest_enemy(self.start_pos, enemies)
         init_position(self, self.start_pos, self.target_pos)
 
         # Apply changes to MageLight state
         mageshock.frames = mageshock_atk_frames
         mageshock.is_attacking = True
+
+class EnergyBounce(Projectile):
+    def __init__(self, start_pos):#
+        
+        super().__init__()
+        self.speed = 30.0
+        self.damage = 3
+
+        init_animation(self, energy_frames)
+        self.rect = self.image.get_rect()        
+
+        self.start_pos = start_pos
+
+        self.target_pos = self.find_2nd_nearest_enemy(self.start_pos, enemies)
+        init_position(self, self.start_pos, self.target_pos)
+   
 
 
 # ============== HitMarker classes ==============
@@ -251,11 +293,17 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
 
+        self.is_alive = True
+
         # Add to enemies and all_sprites groups
         enemies.add(self)
         all_sprites.add(self)
  
     def update(self):
+        if self.curr_health <= 0:
+            self.is_alive = False
+            self.kill()
+
         update_animation(self)
         update_position(self)
 
@@ -385,10 +433,10 @@ while running:
 
     # ===================== PROJECTILE SPAWN =====================
     if len(enemies) > 0:
-        fireball_timer = spawn_projectile(Fireball, fireball_timer, magefire.atk_speed)
-        laser_timer = spawn_projectile(Laser, laser_timer, magelight.atk_speed)
-        tornado_timer = spawn_projectile(Tornado, tornado_timer, magewind.atk_speed)
-        energy_timer = spawn_projectile(Energy, energy_timer, mageshock.atk_speed)
+        fireball_timer = spawn_projectile(Fireball, fireball_timer, magefire.atk_speed, (70, 334))
+        laser_timer = spawn_projectile(Laser, laser_timer, magelight.atk_speed, (90, 334))
+        tornado_timer = spawn_projectile(Tornado, tornado_timer, magewind.atk_speed, (90, 350))
+        energy_timer = spawn_projectile(Energy, energy_timer, mageshock.atk_speed, (70, 350))
 
 
     # ===================== PROJECTILE-ENEMY COLLISION =====================
@@ -417,11 +465,15 @@ while running:
                 elif isinstance(projectile, Energy):
                     projectile.kill()
                     EnergyHitMarker(projectile.rect.center)
+                    if len(enemies) > 1:
+                        EnergyBounce(projectile.rect.center)
+                elif isinstance(projectile, EnergyBounce):
+                    EnergyHitMarker(projectile.rect.center)
+                    projectile.kill()
 
                 # Lower enemy's current health by the projectile damage
                 enemy.curr_health -= projectile.damage
-                if enemy.curr_health <= 0:
-                    enemy.kill()
+                
 
 
     # ===================== TOWER-ENEMY COLLISION =====================

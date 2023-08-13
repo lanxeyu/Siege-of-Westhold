@@ -81,9 +81,9 @@ def select_spawn(self):
         self.rect.y = random.randint(HEIGHT, HEIGHT + self.rect.height)
 
 # Spawn projectiles based on set timer
-def spawn_projectile(projectile_class, timer, atk_speed):
+def spawn_projectile(projectile_class, timer, atk_speed, start_pos):
     timer += clock.get_time()
     if timer >= atk_speed:
-        projectile_class()
+        projectile_class(start_pos)
         timer = 0
     return timer
