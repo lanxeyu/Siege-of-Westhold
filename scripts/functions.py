@@ -1,6 +1,6 @@
 import pygame, random
 
-from scripts.constants import *
+from scripts.init import WIDTH, HEIGHT, clock
 
 # ============== Sprite animation and position functions ==============
 # Initialize sprite animation values
