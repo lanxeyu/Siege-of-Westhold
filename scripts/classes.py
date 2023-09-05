@@ -85,14 +85,20 @@ class Tower(pygame.sprite.Sprite):
         self.rect.centerx = 80
         self.rect.centery = 368
 
+        self.lvl = 1
         self.xp = 0
+        self.max_xp = 10
         self.max_health = 100
         self.curr_health = 100
 
         # Add to all_sprites group
         all_sprites.add(self)
 
-
+    def update(self):
+        if self.xp >= self.max_xp:
+            self.lvl += 1
+            self.xp = 0
+            self.max_xp =  10 * (2 ** self.lvl)
 
 
 # ============== Projectile classes ==============

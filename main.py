@@ -134,9 +134,12 @@ while running:
             screen.blit(health_text, (75, 391))
             screen.blit(heart_image, (57, 390))
 
-            # Display the XP health on the screen
-            xp_text = health_font.render("xp: {}".format(tower.xp), True, (BLACK))
-            screen.blit(xp_text, (60, 410))
+            # Display the Level and XP on the screen
+            lvl_text = health_font.render("lvl {}".format(tower.lvl), True, (BLACK))
+            screen.blit(lvl_text, (60, 410))
+            
+            xp_text = health_font.render("xp: {} / {}".format(tower.xp, tower.max_xp), True, (BLACK))
+            screen.blit(xp_text, (60, 425))
 
             
             pygame.display.flip()
