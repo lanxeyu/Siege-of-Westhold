@@ -130,9 +130,14 @@ while running:
             all_sprites.draw(screen)
             
             # Display the Tower health on the screen
-            health_text = health_font.render("{}".format(tower.curr_health), True, (200, 30, 30))
+            health_text = health_font.render("{}".format(tower.curr_health), True, (BLACK))
             screen.blit(health_text, (75, 391))
             screen.blit(heart_image, (57, 390))
+
+            # Display the XP health on the screen
+            xp_text = health_font.render("xp: {}".format(tower.xp), True, (BLACK))
+            screen.blit(xp_text, (60, 410))
+
             
             pygame.display.flip()
         # ===================== GAMEPLAY END =====================
@@ -140,8 +145,8 @@ while running:
 
     # Draw pause screen if paused
     if paused:
-
-        pause_text = health_font.render("PAUSED", True, WHITE)
+        pygame.draw.rect(screen, (0, 0, 0), (0, (HEIGHT // 2) - 15, WIDTH, 30))
+        pause_text = health_font.render("PAUSED - press SPACE to unpause", True, WHITE)
         screen.blit(pause_text, (WIDTH // 2 - pause_text.get_width() // 2, HEIGHT // 2 - pause_text.get_height() // 2))
         pygame.display.flip()
 

@@ -85,6 +85,7 @@ class Tower(pygame.sprite.Sprite):
         self.rect.centerx = 80
         self.rect.centery = 368
 
+        self.xp = 0
         self.max_health = 100
         self.curr_health = 100
 
@@ -304,6 +305,7 @@ class Enemy(pygame.sprite.Sprite):
     def update(self):
         if self.curr_health <= 0:
             self.is_alive = False
+            tower.xp += self.xp
             self.kill()
 
         update_animation(self)
@@ -313,6 +315,7 @@ class Enemy(pygame.sprite.Sprite):
 class Mob(Enemy):
     def __init__(self):
         super().__init__()
+        self.xp = 1
         self.max_health = 4
         self.curr_health = 4
         self.speed = 0.5
@@ -327,6 +330,7 @@ class Mob(Enemy):
 class Charger(Enemy):
     def __init__(self):
         super().__init__()
+        self.xp = 3        
         self.max_health = 7
         self.curr_health = 7
         self.speed = 1
